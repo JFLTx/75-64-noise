@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>I-75/I-64 Noise</title>
+    <!-- Should external libraries be updated? -->
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+        integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+    <!-- libre franklin font styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet" />
+    <!-- external styles -->
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+    <h1>I-75 / I-64 Noise Study - Newtown Pike to Western Split</h1>
+    <h2 id="button">Info</h2>
+    <div id="map"></div>
+    <div id="ui-controls">
+        <label for="impactModeSel">Switch Impact Value:</label>
+        <select id="impactModeSel">
+            <option value="Existing Noise Impact">Existing</option>
+            <option value="Future No Build Noise Impact">Future No Build</option>
+            <option value="Future Design Build Noise Impact">Future Build</option>
+        </select>
+    </div>
+
+    <div id="modal">
+        <div class="container">
+            <span> &times; </span>
+            <h1>I-75 / I-64 Noise Study - Newtown Pike to Western Split</h1>
+            <div class="title">Methodology</div>
+            <p>
+                Traffic noise data analyzed for the I/75 / I-64 Widening between Newtown Pike and the Western Split
+                using TNM 2.5. Data was prepared within ArcGIS Pro for use in this web map.
+            </p>
+
+            <div class="legend">
+                <div class="legend-title">Legend</div>
+                <ul class="legend-list">
+                    <li class="legend-item">
+                        <span class="legend-swatch poly" aria-hidden="true"></span>
+                        <span>Noise Study Area</span>
+                    </li>
+                    <li class="legend-item">
+                        <span class="legend-swatch line" aria-hidden="true"></span>
+                        <span>Existing ROW</span>
+                    </li>
+                    <li class="legend-item">
+                        <span class="legend-swatch point impact" aria-hidden="true"></span>
+                        <span>Impacted Receptor</span>
+                    </li>
+                    <li class="legend-item">
+                        <span class="legend-swatch point no-impact" aria-hidden="true"></span>
+                        <span>Not Impacted Receptor</span>
+                    </li>
+                </ul>
+            </div>
+
+
+            <p>
+                &copy; OpenStreetMap contributors
+            </p>
+            <div class="footer"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+        integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+    <!-- Leaflet Projection -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"
+        integrity="sha512-Y/B11KRfeaNHAonSdwnF0fvpzsA+W27fqfMPmfkxRAwuySCcA7aT9LfJcWz5fi32McMI02jngFYj7LYT1z+VVg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.min.js"></script>
+
+    <!-- Add application JS -->
+    <script src="app/app.js"></script>
+</body>
+
+</html>

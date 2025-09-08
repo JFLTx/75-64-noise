@@ -1,0 +1,418 @@
+:root {
+  --font: Libre Franklin, sans-serif;
+  --light: rgb(161, 227, 253);
+  --dark: #0d0000;
+  --orange: rgb(228, 175, 0);
+  --orange-light: rgb(255, 234, 166);
+  --impact: rgb(230, 30, 30);
+  --measurementSite: rgb(255, 238, 0);
+  --noImpact: rgb(0, 230, 50);
+  --gray: rgba(57, 57, 57, 0.8);
+  --background: rgba(25, 25, 25, 0.8);
+  --shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  --radius: 5px;
+  --border: 1px solid var(--dark);
+  --row: #ffd900;
+  --studyFill: rgba(227, 223, 166, 0.2);
+  --studyStroke: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  font-family: var(--font);
+  color: var(--light);
+  font-size: 100%;
+}
+
+h1 {
+  position: absolute;
+  z-index: 650;
+  top: 10px;
+  left: 15px;
+  padding: 0px 4px;
+  margin: 0;
+  font-family: "Libre Franklin", sans-serif;
+  font-size: 3em;
+  color: whitesmoke;
+  text-shadow: 0 0 3px var(--dark), 0 0 5px var(--dark), 0 0 7px var(--dark),
+    0 0 10px var(--dark);
+}
+
+#map {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  bottom: 0;
+  background-color: var(--gray);
+}
+
+h2 {
+  position: absolute;
+  z-index: 650;
+  top: 10px;
+  left: 15px;
+  padding: 8px 15px;
+  margin: 0;
+  color: var(--light);
+  font-size: 1em;
+  text-transform: uppercase;
+  background: var(--background);
+  border-radius: var(--radius);
+  border: var(--border);
+  cursor: pointer;
+}
+
+h2:hover {
+  background: var(--orange);
+  color: var(--dark);
+}
+
+h2:active {
+  background: var(--orange-light);
+}
+
+.legend {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--background);
+  border: var(--border);
+  border-radius: var(--radius);
+  color: var(--light);
+}
+
+.legend-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.legend-swatch {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+/* Noise Study Area */
+.legend-swatch.poly {
+  width: 18px;
+  height: 18px;
+  background: var(--studyFill);
+  border: 3px solid var(--studyStroke);
+  border-radius: 3px;
+}
+
+/* Existing ROW */
+.legend-swatch.line {
+  width: 28px;
+  height: 0;
+  border-top: 3px solid var(--row);
+}
+
+/* Point Swatches */
+.legend-swatch.point {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #eeeeee;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
+}
+
+.legend-swatch.point.impact {
+  background: var(--impact);
+}
+.legend-swatch.point.no-impact {
+  background: var(--noImpact);
+}
+
+#ui-controls {
+  position: absolute;
+  z-index: 650;
+  top: 30px;
+  right: 10px;
+  background: var(--background);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  color: var(--light);
+  font-family: var(--font);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#ui-controls select {
+  background: transparent;
+  color: var(--light);
+  border: 1px solid var(--light);
+  background: var(--background);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 1rem;
+}
+
+#ui-controls label {
+  font-size: 1.2rem;
+}
+
+#modal {
+  display: none;
+  position: absolute;
+  z-index: 2000;
+  padding: 10px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: var(--background);
+  color: whitesmoke;
+  font-size: 1.5em;
+}
+
+#modal .container {
+  width: 500px;
+  margin: 10px auto;
+  padding: 5px 20px;
+  position: relative;
+  background: var(--background);
+  border-radius: var(--radius);
+  border: var(--border);
+}
+
+#modal .legend {
+  position: relative;
+  display: block;
+  margin: 12px 0;
+}
+
+#modal a:link,
+#modal a:visited {
+  color: var(--orange);
+}
+
+#modal a:hover {
+  color: var(--orange-light);
+}
+
+#modal div {
+  margin: 20px auto;
+}
+
+#modal h1 {
+  display: none;
+}
+
+#modal p {
+  font-size: 1.1rem;
+  line-height: 1.5rem;
+  margin: 5px 0;
+}
+
+#modal .footer {
+  font-size: 1rem;
+  color: var(--light);
+  text-align: center;
+}
+
+#modal span {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  cursor: pointer;
+}
+
+#modal pre {
+  font-size: 1rem;
+}
+
+.leaflet-tooltip-own {
+  font-size: 1.2em;
+  font-family: var(--font);
+}
+
+.leaflet-tooltip-own h3 {
+  font-size: 1.4em;
+  font-weight: bold;
+  line-height: 1em;
+  color: var(--light);
+  margin: 0.5em 0 0.8em 0;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius);
+  border: var(--border);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-content {
+  width: -moz-fit-content;
+  width: fit-content;
+  /* max-width: min(92vw, 640px); */
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--background);
+  color: var(--light);
+  box-shadow: var(--shadow);
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--light);
+}
+
+.leaflet-marker-icon.impact {
+  background-color: var(--impact);
+  border: 2px solid #eeeeee;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
+  transition: transform 0.2s ease;
+}
+
+.leaflet-marker-icon.no-impact {
+  background-color: var(--noImpact);
+  border: 2px solid #eeeeee;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
+  transition: transform 0.2s ease;
+}
+
+.leaflet-marker-icon.measurement-site {
+  background-color: var(--measurementSite);
+  border: 2px solid #eeeeee;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
+  transition: transform 0.2s ease;
+}
+
+.kv-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.5;
+  margin: 2px 0;
+}
+
+/* left label */
+.kv-row .key {
+  /* white-space: nowrap; */
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* dotted leader filler */
+.kv-row .dots {
+  flex: 1 1 auto;
+  border-bottom: 1px dotted rgba(183, 232, 251, 0.75);
+  height: 0;
+  min-width: 8px;
+  transform: translateY(-1px);
+}
+
+/* right value chip */
+.kv-row .value {
+  text-align: right;
+}
+
+.popup-content,
+.kv-row {
+  min-width: 0;
+}
+.kv-row .key,
+.kv-row .dots,
+.kv-row .value {
+  min-width: 0;
+}
+
+/* only the VALUE gets colored for any *Impact field */
+.value-impact-yes {
+  background: var(--impact);
+  color: var(--dark);
+}
+.value-impact-no {
+  background: var(--noImpact);
+  color: var(--dark);
+}
+
+/* Hover scale for divIcon markers */
+.leaflet-marker-icon.hovered {
+  transform: scale(3);
+}
+
+/* Tiny control styling (optional) */
+.leaflet-control.impact-mode {
+  background: var(--background);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  color: var(--light);
+  font-family: var(--font);
+}
+.leaflet-control.impact-mode select {
+  background: transparent;
+  color: var(--light);
+  border: 1px solid var(--light);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+/* Small devices (portrait phones, 576px and below) */
+@media (max-width: 576px) and (orientation: portrait) {
+  h1 {
+    display: none;
+  }
+
+  #modal .container {
+    width: 90%;
+  }
+
+  #modal h1 {
+    display: block;
+    position: relative;
+    margin: 20px auto;
+    padding: 0;
+    font-size: 1.6rem;
+    top: unset;
+    left: unset;
+    background: unset;
+    border-radius: unset;
+    border: unset;
+  }
+
+  #modal pre {
+    font-size: 0.7rem;
+  }
+  #ui-controls {
+    top: auto !important;
+    bottom: calc(env(safe-area-inset-bottom, 0) + 20px) !important;
+    right: 12px;
+    left: auto;
+  }
+}
