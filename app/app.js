@@ -20,7 +20,9 @@ const data = {
     options: {
       center: [42, -100],
       zoom: 1,
-      zoomSnap: 1,
+      maxZoom: 22,
+      zoomSnap: 0.25,
+      zoomDelta: 0.25,
       zoomControl: false,
     },
     tiles: {
@@ -30,6 +32,8 @@ const data = {
           attribution:
             'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           opacity: 1,
+          maxNativeZoom: 19,
+          maxZoom: 22,
         },
       },
       labels: {
@@ -38,6 +42,8 @@ const data = {
           attribution:
             'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           pane: "top",
+          maxNativeZoom: 19,
+          maxZoom: 22,
         },
       },
     },
