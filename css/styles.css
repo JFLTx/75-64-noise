@@ -234,9 +234,16 @@ h2:active {
 }
 
 #modal .footer {
-  font-size: 1rem;
-  color: var(--light);
-  text-align: center;
+  display: flex;
+  justify-content: center;  
+  align-items: center;
+  margin-top: 16px;
+}
+
+#modal .footer img {
+  max-width: 240px;   
+  height: auto;
+  opacity: 0.95;      
 }
 
 #modal .container > span {
