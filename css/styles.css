@@ -15,12 +15,12 @@
   --row: #ffd900;
   --studyFill: rgba(227, 223, 166, 0.2);
   --studyStroke: #ffffff;
+  --barrier: #00ffff;
 }
 
 * {
   box-sizing: border-box;
 }
-
 
 body {
   margin: 0;
@@ -133,6 +133,12 @@ h2:active {
   border-top: 3px solid var(--row);
 }
 
+.legend-swatch.barrier {
+  width: 28px;
+  height: 0;
+  border-top: 3px solid var(--barrier);
+}
+
 /* Point Swatches */
 .legend-swatch.point {
   width: 12px;
@@ -235,15 +241,15 @@ h2:active {
 
 #modal .footer {
   display: flex;
-  justify-content: center;  
+  justify-content: center;
   align-items: center;
   margin-top: 16px;
 }
 
 #modal .footer img {
-  max-width: 240px;   
+  max-width: 240px;
   height: auto;
-  opacity: 0.95;      
+  opacity: 0.95;
 }
 
 #modal .container > span {

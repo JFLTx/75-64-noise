@@ -47,7 +47,7 @@ const data = {
         },
       },
     },
-    panes: ["ROW", "studyArea", "receptors", "top"],
+    panes: ["ROW", "studyArea", "receptors", "barrier", "top"],
   },
   sources: {
     existingRow: {
@@ -87,6 +87,19 @@ const data = {
       },
       pane: "receptors",
       fields: ["ReceiverName"],
+      interactive: true,
+      raw: false,
+    },
+    barriers: {
+      geojson: "data/proposed-barrier.geojson",
+      styles: {
+        radius: 4,
+        color: "#00FFFF",
+        weight: 4,
+        opacity: 1,
+      },
+      pane: "barrier",
+      fields: ["Name"],
       interactive: true,
       raw: false,
     },
@@ -135,7 +148,12 @@ function createBaseMap() {
 // ##########################
 function addSources() {
   const src = data.sources;
-  const layersToPlace = [src.existingRow, src.noiseBuffer, src.receptors];
+  const layersToPlace = [
+    src.existingRow,
+    src.noiseBuffer,
+    src.receptors,
+    src.barriers,
+  ];
 
   layersToPlace.forEach((l) => {
     fetch(l.geojson)
@@ -214,6 +232,37 @@ function buildPopup(properties) {
 
 // makeIcon Function
 // ##########################
+function buildBarrierPopup(p) {
+  const name = p.Name ?? "—";
+
+  // allow a few common field name variants just in case
+  let len = p["Barrier Length (ft)"];
+
+  if (typeof len === "number") {
+    len = len.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  } else if (!isNaN(parseFloat(len))) {
+    len = Number(len).toLocaleString(undefined, { maximumFractionDigits: 1 });
+  }
+
+  return `
+    <div class="popup-content">
+      <div class="kv-row">
+        <span class="key">Name:</span>
+        <span class="dots" aria-hidden="true"></span>
+        <span class="value">${name}</span>
+      </div>
+      <div class="kv-row">
+        <span class="key">Barrier Length (ft):</span>
+        <span class="dots" aria-hidden="true"></span>
+        <span class="value">${len}</span>
+      </div>
+    </div>
+  `;
+}
+// ##########################
+
+// makeIcon Function
+// ##########################
 function makeIcon(props) {
   // Measurement Site wins
   if (yn(props.MeasurementSite) === "YES") {
@@ -279,11 +328,12 @@ function drawGeoJson(geojson, l) {
     },
     onEachFeature: function (feature, layer) {
       const f = feature.properties;
-      if (l.interactive && l.fields.length > 0) {
-        const popupHtml = buildPopup(f);
+
+      if (l === data.sources.receptors) {
+        const popupHtml = buildPopup(f); // your existing receptor popup
         layer.bindPopup(popupHtml, data.popupOptions);
 
-        // simple hover effect for divIcon markers
+        // hover effect for receptors (divIcon)
         layer.on("mouseover", function () {
           const el = layer._icon || layer.getElement?.();
           if (el) el.classList.add("hovered");
@@ -292,6 +342,16 @@ function drawGeoJson(geojson, l) {
           const el = layer._icon || layer.getElement?.();
           if (el) el.classList.remove("hovered");
         });
+      }
+
+      if (l === data.sources.barriers) {
+        layer.bindPopup(buildBarrierPopup(f), data.popupOptions);
+
+        // optional hover highlight for line barriers
+        layer.on("mouseover", () =>
+          layer.setStyle({ weight: 6, color: "#7ffeff" })
+        );
+        layer.on("mouseout", () => layer.setStyle(l.styles));
       }
     },
   }).addTo(map);
