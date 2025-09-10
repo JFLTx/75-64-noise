@@ -230,34 +230,34 @@ function buildPopup(properties) {
 }
 // ##########################
 
-// makeIcon Function
+// buildBarrierPopup Function
 // ##########################
 function buildBarrierPopup(p) {
-  const name = p.Name ?? "—";
+  const EXCLUDE = new Set(["OBJECTID"]);
 
-  // allow a few common field name variants just in case
-  let len = p["Barrier Length (ft)"];
+  const rows = Object.keys(p)
+    .filter((k) => !EXCLUDE.has(k))
+    .map((key) => {
+      let val = p[key];
 
-  if (typeof len === "number") {
-    len = len.toLocaleString(undefined, { maximumFractionDigits: 1 });
-  } else if (!isNaN(parseFloat(len))) {
-    len = Number(len).toLocaleString(undefined, { maximumFractionDigits: 1 });
-  }
+      // format value nicely
+      if (typeof val === "number") {
+        val = Number.isInteger(val)
+          ? val.toLocaleString()
+          : val.toLocaleString(undefined, { maximumFractionDigits: 1 });
+      } else if (typeof val === "string" && val.trim() === "") {
+        val = "—";
+      }
+      return `
+        <div class="kv-row">
+          <span class="key">${key}:</span>
+          <span class="dots" aria-hidden="true"></span>
+          <span class="value">${val}</span>
+        </div>`;
+    })
+    .join("");
 
-  return `
-    <div class="popup-content">
-      <div class="kv-row">
-        <span class="key">Name:</span>
-        <span class="dots" aria-hidden="true"></span>
-        <span class="value">${name}</span>
-      </div>
-      <div class="kv-row">
-        <span class="key">Barrier Length (ft):</span>
-        <span class="dots" aria-hidden="true"></span>
-        <span class="value">${len}</span>
-      </div>
-    </div>
-  `;
+  return `<div class="popup-content">${rows}</div>`;
 }
 // ##########################
 
