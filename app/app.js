@@ -193,6 +193,9 @@ function buildPopup(properties) {
     "PM_EndTime",
     "AMValidation",
     "PMValidation",
+    "Activity_Criteria",
+    "NAC_Category",
+    "MeasurementSite",
   ];
 
   let html = "<div class='popup-content'>";

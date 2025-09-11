@@ -148,6 +148,10 @@ h2:active {
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
 }
 
+.legend-swatch.point.measurement-site {
+  background: var(--measurementSite);
+}
+
 .legend-swatch.point.impact {
   background: var(--impact);
 }
