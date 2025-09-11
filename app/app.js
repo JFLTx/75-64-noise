@@ -163,7 +163,7 @@ function addSources() {
         const geojson = l.raw ? createGeoJson(jsonData) : jsonData;
         drawGeoJson(geojson, l);
 
-        // Optional: Zoom to receptors.geojson
+        // Zoom to receptors.geojson
         if (l === src.receptors) {
           const bounds = L.geoJSON(geojson).getBounds();
           map.fitBounds(bounds, { padding: [20, 20] });
@@ -267,14 +267,7 @@ function buildBarrierPopup(p) {
 // makeIcon Function
 // ##########################
 function makeIcon(props) {
-  // Measurement Site wins
-  if (yn(props.MeasurementSite) === "YES") {
-    return L.divIcon({
-      className: "leaflet-marker-icon measurement-site",
-      iconSize: [12, 12],
-    });
-  }
-  // Otherwise, color by the selected impactMode field
+  // Color by the selected impactMode field
   const val = yn(props[impactMode]);
   const cls = val === "YES" ? "impact" : "no-impact";
   if (yn(props.MeasurementSite) === "NO") {
@@ -319,6 +312,13 @@ function drawGeoJson(geojson, l) {
     interactive: !!l.interactive,
     style: function () {
       return l.styles;
+    },
+    // remove measurement sites
+    filter: function (feature) {
+      if (l === data.sources.receptors) {
+        return yn(feature.properties?.MeasurementSite) !== "YES";
+      }
+      return true; // keeps all other features from other geojson layers
     },
     pointToLayer: function (feature, latlng) {
       if (feature.geometry.type === "Point") {

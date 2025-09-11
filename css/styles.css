@@ -5,7 +5,6 @@
   --orange: rgb(228, 175, 0);
   --orange-light: rgb(255, 234, 166);
   --impact: rgb(230, 30, 30);
-  --measurementSite: rgb(255, 238, 0);
   --noImpact: rgb(0, 230, 50);
   --gray: rgba(57, 57, 57, 0.8);
   --background: rgba(25, 25, 25, 0.8);
@@ -146,10 +145,6 @@ h2:active {
   border: 2px solid #eeeeee;
   border-radius: 50%;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
-}
-
-.legend-swatch.point.measurement-site {
-  background: var(--measurementSite);
 }
 
 .legend-swatch.point.impact {
