@@ -389,8 +389,8 @@ h2:active {
 .leaflet-marker-icon.orange {
   border: 2px solid #eeeeee;
   border-radius: 50%;
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
   transition: transform 0.2s ease;
 }
@@ -447,17 +447,7 @@ h2:active {
   min-width: 0;
 }
 
-/* only the VALUE gets colored for any *Impact field */
-/* .value-impact-yes {
-  background: var(--impact);
-  color: var(--dark);
-}
-.value-impact-no {
-  background: var(--noImpact);
-  color: var(--dark);
-} */
-
-/* Popup value chip colors (4-category) */
+/* Popup value chip colors */
 .kv-row .value.red {
   background: var(--red);
   color: var(--dark);
@@ -470,23 +460,6 @@ h2:active {
 /* Hover scale for divIcon markers */
 .leaflet-marker-icon.hovered {
   transform: scale(3);
-}
-
-/* Tiny control styling (optional) */
-.leaflet-control.impact-mode {
-  background: var(--background);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: 6px 8px;
-  color: var(--light);
-  font-family: var(--font);
-}
-.leaflet-control.impact-mode select {
-  background: transparent;
-  color: var(--light);
-  border: 1px solid var(--light);
-  border-radius: 4px;
-  padding: 3px 6px;
 }
 
 /* Small devices (portrait phones, 576px and below) */

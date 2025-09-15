@@ -76,7 +76,7 @@ const data = {
       raw: false,
     },
     receptors: {
-      geojson: "data/receptors-updated.geojson",
+      geojson: "data/receptors.geojson",
       styles: {
         radius: 4,
         fillColor: "#e31a1c",
@@ -196,6 +196,8 @@ function buildPopup(properties) {
     "Activity_Criteria",
     "NAC_Category",
     "MeasurementSite",
+    "Reduction",
+    "Benefited",
   ];
 
   // --- helpers ---
@@ -206,36 +208,42 @@ function buildPopup(properties) {
     return Number.isFinite(n) ? n : null;
   };
 
-  // --- derive Reduction & Benefitted ---
-  const future = toNum(properties["Future Noise Design Build"]);
-  const barrier = toNum(properties["Barrier Design 10ft ALL"]);
+  // robust Impact-key detector (normalize + collapse spaces)
+  const isImpactKey = (k) =>
+    /\bimpact\b/i.test(String(k).normalize("NFKC").replace(/\s+/g, " ").trim());
 
+  // --- derive Reduction & Benefited from your updated fields ---
+  const future = toNum(properties["Future Noise Design Build"]);
+  const barrier = toNum(properties["Future Noise Levels with Barrier"]);
   const reduction =
     future != null && barrier != null
       ? Math.round((future - barrier) * 10) / 10
       : null;
 
-  const benefitted = reduction == null ? "—" : reduction >= 5 ? "YES" : "NO";
+  const benefited = reduction == null ? "—" : reduction >= 5 ? "YES" : "NO";
 
   // --- build rows ---
   let html = "<div class='popup-content'>";
 
-  for (const key in properties) {
-    if (!properties.hasOwnProperty(key) || exclude.includes(key)) continue;
+  for (const rawKey in properties) {
+    if (!properties.hasOwnProperty(rawKey) || exclude.includes(rawKey))
+      continue;
 
+    const key = rawKey; // keep label
     let value = properties[key];
+
+    // format numbers
     if (typeof value === "number") {
       value = Number.isInteger(value) ? value : value.toFixed(1);
     }
     if (value == null || value === "") value = "—";
 
-    // Per-row coloring:
-    // - Any "*Impact*" row: YES => red
-    // - Nothing else colored here
+    // Color ONLY Impact rows:
+    //   YES => red, NO => green, else uncolored
     let vClass = "";
-    if (/impact/i.test(key)) {
-      const ynVal = yn(properties[key]); // normalize to YES/NO
-      if (ynVal === "YES") vClass = "red";
+    if (isImpactKey(key)) {
+      const ynVal = yn(properties[key]); // normalize on raw value
+      vClass = ynVal === "YES" ? "red" : ynVal === "NO" ? "green" : "";
     }
 
     html += `
@@ -246,7 +254,7 @@ function buildPopup(properties) {
       </div>`;
   }
 
-  // Derived rows (Benefitted YES => green)
+  // Derived rows (Benefited YES => green)
   html += `
     <div class="kv-row">
       <span class="key">Reduction:</span>
@@ -254,11 +262,11 @@ function buildPopup(properties) {
       <span class="value">${reduction == null ? "—" : reduction}</span>
     </div>
     <div class="kv-row">
-      <span class="key">Benefitted:</span>
+      <span class="key">Benefited:</span>
       <span class="dots" aria-hidden="true"></span>
       <span class="value ${
-        benefitted === "YES" ? "green" : ""
-      }">${benefitted}</span>
+        benefited === "YES" ? "green" : "red"
+      }">${benefited}</span>
     </div>`;
 
   html += "</div>";

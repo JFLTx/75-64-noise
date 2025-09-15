@@ -31,10 +31,10 @@
         "OBJECTID": 1,
         "Barrier Length (ft)": 2390.0330627769786,
         "Name": "KR",
-        "Barrier Height (ft)": 10,
-        "Cost": 717009.91883309348,
-        "Number of Benefitted Receptors": 106,
-        "CBR": 6764.2445172933349,
+        "Barrier Height (ft)": 20,
+        "Cost": 1434019.837666187,
+        "Number of Benefitted Receptors": 303,
+        "CBR": 13528.48903458667,
         "Meets Design Goal": "YES"
       }
     },
