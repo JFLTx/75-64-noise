@@ -2,10 +2,12 @@
   --font: Libre Franklin, sans-serif;
   --light: rgb(161, 227, 253);
   --dark: #0d0000;
-  --orange: rgb(228, 175, 0);
+  --yellow-orange: rgb(228, 175, 0);
   --orange-light: rgb(255, 234, 166);
-  --impact: rgb(230, 30, 30);
-  --noImpact: rgb(0, 230, 50);
+  --red: rgb(230, 30, 30);
+  --green: rgb(0, 230, 50);
+  --yellow: rgb(255, 217, 61);
+  --orange: rgb(255, 140, 0);
   --gray: rgba(57, 57, 57, 0.8);
   --background: rgba(25, 25, 25, 0.8);
   --shadow: 0 0 15px rgba(0, 0, 0, 0.2);
@@ -69,7 +71,7 @@ h2 {
 }
 
 h2:hover {
-  background: var(--orange);
+  background: var(--yellow-orange);
   color: var(--dark);
 }
 
@@ -140,18 +142,25 @@ h2:active {
 
 /* Point Swatches */
 .legend-swatch.point {
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   border: 2px solid #eeeeee;
   border-radius: 50%;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
 }
 
-.legend-swatch.point.impact {
-  background: var(--impact);
+/* Legend point swatches */
+.legend-swatch.point.red {
+  background: var(--red);
 }
-.legend-swatch.point.no-impact {
-  background: var(--noImpact);
+.legend-swatch.point.green {
+  background: var(--green);
+}
+.legend-swatch.point.yellow {
+  background: var(--yellow);
+}
+.legend-swatch.point.orange {
+  background: var(--orange);
 }
 
 #ui-controls {
@@ -215,9 +224,72 @@ h2:active {
   margin: 12px 0;
 }
 
+/* Native MathML inside the modal */
+#modal math {
+  display: block;
+  margin: 14px auto; /* space from surrounding <p> */
+  padding: 8px 12px; /* inner breathing room */
+  text-align: center;
+  font-family: var(--font);
+  color: var(--light);
+  font-size: 1.1rem;
+  line-height: 1.35;
+  max-width: min(90%, 700px);
+  overflow-x: auto; /* guard long equations */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Token styling */
+#modal math mi {
+  font-style: italic;
+} /* variables */
+#modal math mn {
+  font-variant-numeric: tabular-nums;
+} /* numbers align */
+#modal math mo {
+  padding: 0 0.35em;
+} /* operator spacing */
+#modal math mtext {
+  font-style: normal;
+} /* plain text */
+
+/* Fractions */
+#modal math mfrac {
+  margin: 0 0.15em;
+}
+#modal math mfrac > :first-child,
+#modal math mfrac > :last-child {
+  padding: 0 0.25em;
+  text-align: center;
+}
+
+/* Sub/Sup spacing */
+#modal math msub,
+#modal math msup,
+#modal math msubsup {
+  margin: 0 0.1em;
+}
+
+/* Tables (if you use aligned equations) */
+#modal math mtable {
+  margin: 6px auto;
+}
+#modal math mtd {
+  padding: 0 0.4em;
+  text-align: center;
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  #modal math {
+    font-size: 1rem;
+  }
+}
+
 #modal a:link,
 #modal a:visited {
-  color: var(--orange);
+  color: var(--yellow-orange);
 }
 
 #modal a:hover {
@@ -311,34 +383,29 @@ h2:active {
   color: var(--light);
 }
 
-.leaflet-marker-icon.impact {
-  background-color: var(--impact);
+.leaflet-marker-icon.red,
+.leaflet-marker-icon.green,
+.leaflet-marker-icon.yellow,
+.leaflet-marker-icon.orange {
   border: 2px solid #eeeeee;
   border-radius: 50%;
-  width: 10px;
-  height: 10px;
+  width: 15px;
+  height: 15px;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
   transition: transform 0.2s ease;
 }
 
-.leaflet-marker-icon.no-impact {
-  background-color: var(--noImpact);
-  border: 2px solid #eeeeee;
-  border-radius: 50%;
-  width: 10px;
-  height: 10px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
-  transition: transform 0.2s ease;
+.leaflet-marker-icon.red {
+  background-color: var(--red);
 }
-
-.leaflet-marker-icon.measurement-site {
-  background-color: var(--measurementSite);
-  border: 2px solid #eeeeee;
-  border-radius: 50%;
-  width: 10px;
-  height: 10px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
-  transition: transform 0.2s ease;
+.leaflet-marker-icon.green {
+  background-color: var(--green);
+}
+.leaflet-marker-icon.yellow {
+  background-color: var(--yellow);
+}
+.leaflet-marker-icon.orange {
+  background-color: var(--orange);
 }
 
 .kv-row {
@@ -381,12 +448,22 @@ h2:active {
 }
 
 /* only the VALUE gets colored for any *Impact field */
-.value-impact-yes {
+/* .value-impact-yes {
   background: var(--impact);
   color: var(--dark);
 }
 .value-impact-no {
   background: var(--noImpact);
+  color: var(--dark);
+} */
+
+/* Popup value chip colors (4-category) */
+.kv-row .value.red {
+  background: var(--red);
+  color: var(--dark);
+}
+.kv-row .value.green {
+  background: var(--green);
   color: var(--dark);
 }
 

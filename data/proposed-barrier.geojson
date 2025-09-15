@@ -31,7 +31,11 @@
         "OBJECTID": 1,
         "Barrier Length (ft)": 2390.0330627769786,
         "Name": "KR",
-        "Barrier Height (ft)": 10
+        "Barrier Height (ft)": 10,
+        "Cost": 717009.91883309348,
+        "Number of Benefitted Receptors": 106,
+        "CBR": 6764.2445172933349,
+        "Meets Design Goal": "YES"
       }
     },
     {
@@ -58,7 +62,11 @@
         "OBJECTID": 3,
         "Barrier Length (ft)": 2200.0001004905566,
         "Name": "LT1",
-        "Barrier Height (ft)": 10
+        "Barrier Height (ft)": 10,
+        "Cost": 660000.03014716704,
+        "Number of Benefitted Receptors": 18,
+        "CBR": 36666.668341509278,
+        "Meets Design Goal": "NO"
       }
     },
     {
@@ -84,7 +92,11 @@
         "OBJECTID": 4,
         "Barrier Length (ft)": 3649.9999365462845,
         "Name": "LT2",
-        "Barrier Height (ft)": 10
+        "Barrier Height (ft)": 10,
+        "Cost": 1094999.9809638856,
+        "Number of Benefitted Receptors": 23,
+        "CBR": 47608.694824516766,
+        "Meets Design Goal": "NO"
       }
     }
   ]

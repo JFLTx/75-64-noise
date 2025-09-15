@@ -21,14 +21,14 @@
   <h1>I-75 / I-64 Noise Study - Newtown Pike to Western Split</h1>
   <h2 id="button">Info</h2>
   <div id="map"></div>
-  <div id="ui-controls">
+  <!-- <div id="ui-controls">
     <label for="impactModeSel">Switch Impact Value:</label>
     <select id="impactModeSel">
       <option value="Existing Noise Impact">Existing</option>
       <option value="Future No Build Noise Impact">Future No Build</option>
       <option value="Future Noise Design Build Impact">Future Build</option>
     </select>
-  </div>
+  </div> -->
 
   <div id="modal">
     <div class="container">
@@ -45,12 +45,20 @@
         <div class="legend-title">Legend</div>
         <ul class="legend-list">
           <li class="legend-item">
-            <span class="legend-swatch point impact" aria-hidden="true"></span>
-            <span>Impacted Receptor</span>
+            <span class="legend-swatch point red" aria-hidden="true"></span>
+            <span>Impacted, Not Benefited Receptor</span>
           </li>
           <li class="legend-item">
-            <span class="legend-swatch point no-impact" aria-hidden="true"></span>
-            <span>Not Impacted Receptor</span>
+            <span class="legend-swatch point green" aria-hidden="true"></span>
+            <span>Impacted, Benefited Receptor</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch point yellow" aria-hidden="true"></span>
+            <span>Not Impacted, Benefited Receptor</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch point orange" aria-hidden="true"></span>
+            <span>Not Impacted, Not Benefited</span>
           </li>
           <li class="legend-item">
             <span class="legend-swatch poly" aria-hidden="true"></span>
@@ -86,6 +94,51 @@
         apartments where each floor was modelled at 17 ft, and 29 ft for
         second and third floors, respectively.
         <br /><br />
+      </p>
+
+      <p>
+        Barrier costs are defined in <a
+          href="https://transportation.ky.gov/EnvironmentalAnalysis/Environmental%20Resources/2020%20KYTC%20Noise%20Analysis%20and%20Abatement%20Policy.pdf">KYTC's
+          Noise Abatement Policy</a>, where KYTC assumes an average cost of $30/square foot of barrier wall. Barrier
+        costs are calculated as follows:
+        <br />
+      </p>
+      <math display="block">
+        <mrow>
+          <mi>C</mi>
+          <mo>=</mo>
+          <mi>L</mi>
+          <mo>×</mo>
+          <mi>H</mi>
+          <mo>×</mo>
+          <mi>$30/ft²</mi>
+        </mrow>
+      </math>
+      <p>
+        Where C = Cost ($),
+        L = Length of Barrier (ft),
+        and H = Barrier Height (ft).
+        <br><br>
+      </p>
+      <p>
+        Cost Benefit Ratio (CBR) is defined as follows:
+        <br />
+      </p>
+      <math display="block">
+        <mrow>
+          <mi>CBR</mi>
+          <mo>=</mo>
+          <mfrac>
+            <mi>C</mi>
+            <mi>B</mi>
+          </mfrac>
+        </mrow>
+      </math>
+      <p>
+        Where
+        C = Cost ($),
+        and B = Number of Benefited Receptors.
+        <br><br>
       </p>
 
       <p>&copy; OpenStreetMap contributors</p>

@@ -76,7 +76,7 @@ const data = {
       raw: false,
     },
     receptors: {
-      geojson: "data/receptors.geojson",
+      geojson: "data/receptors-updated.geojson",
       styles: {
         radius: 4,
         fillColor: "#e31a1c",
@@ -198,27 +198,45 @@ function buildPopup(properties) {
     "MeasurementSite",
   ];
 
+  // --- helpers ---
+  const toNum = (v) => {
+    if (typeof v === "number") return Number.isFinite(v) ? v : null;
+    if (v == null) return null;
+    const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // --- derive Reduction & Benefitted ---
+  const future = toNum(properties["Future Noise Design Build"]);
+  const barrier = toNum(properties["Barrier Design 10ft ALL"]);
+
+  const reduction =
+    future != null && barrier != null
+      ? Math.round((future - barrier) * 10) / 10
+      : null;
+
+  const benefitted = reduction == null ? "—" : reduction >= 5 ? "YES" : "NO";
+
+  // --- build rows ---
   let html = "<div class='popup-content'>";
 
   for (const key in properties) {
     if (!properties.hasOwnProperty(key) || exclude.includes(key)) continue;
 
     let value = properties[key];
-    const isImpact = /impact/i.test(key); // any prop name containing "Impact"
-    const yesNo = isImpact ? yn(value) : null; // normalize YES/NO only for impacts
-
-    // format numbers
     if (typeof value === "number") {
       value = Number.isInteger(value) ? value : value.toFixed(1);
     }
     if (value == null || value === "") value = "—";
 
-    // choose value chip class for impacts only
-    const vClass = isImpact
-      ? yesNo === "YES"
-        ? "value-impact-yes"
-        : "value-impact-no"
-      : "";
+    // Per-row coloring:
+    // - Any "*Impact*" row: YES => red
+    // - Nothing else colored here
+    let vClass = "";
+    if (/impact/i.test(key)) {
+      const ynVal = yn(properties[key]); // normalize to YES/NO
+      if (ynVal === "YES") vClass = "red";
+    }
 
     html += `
       <div class="kv-row">
@@ -228,29 +246,51 @@ function buildPopup(properties) {
       </div>`;
   }
 
+  // Derived rows (Benefitted YES => green)
+  html += `
+    <div class="kv-row">
+      <span class="key">Reduction:</span>
+      <span class="dots" aria-hidden="true"></span>
+      <span class="value">${reduction == null ? "—" : reduction}</span>
+    </div>
+    <div class="kv-row">
+      <span class="key">Benefitted:</span>
+      <span class="dots" aria-hidden="true"></span>
+      <span class="value ${
+        benefitted === "YES" ? "green" : ""
+      }">${benefitted}</span>
+    </div>`;
+
   html += "</div>";
   return html;
 }
+
 // ##########################
 
 // buildBarrierPopup Function
 // ##########################
 function buildBarrierPopup(p) {
-  const EXCLUDE = new Set(["OBJECTID"]);
+  const exclude = new Set(["OBJECTID"]);
+  const currencyKeys = new Set(["Cost", "CBR"]);
 
   const rows = Object.keys(p)
-    .filter((k) => !EXCLUDE.has(k))
+    .filter((k) => !exclude.has(k))
     .map((key) => {
       let val = p[key];
 
-      // format value nicely
-      if (typeof val === "number") {
+      if (val == null || (typeof val === "string" && val.trim() === "")) {
+        val = "—";
+      } else if (typeof val === "number") {
         val = Number.isInteger(val)
           ? val.toLocaleString()
           : val.toLocaleString(undefined, { maximumFractionDigits: 1 });
-      } else if (typeof val === "string" && val.trim() === "") {
-        val = "—";
       }
+
+      if (currencyKeys.has(key) && val !== "—") {
+        const s = String(val).trim();
+        val = s.startsWith("$") ? s : `$${s}`;
+      }
+
       return `
         <div class="kv-row">
           <span class="key">${key}:</span>
@@ -262,33 +302,66 @@ function buildBarrierPopup(p) {
 
   return `<div class="popup-content">${rows}</div>`;
 }
+
 // ##########################
 
-// makeIcon Function
-// ##########################
-function makeIcon(props) {
-  // Color by the selected impactMode field
-  const val = yn(props[impactMode]);
-  const cls = val === "YES" ? "impact" : "no-impact";
-  if (yn(props.MeasurementSite) === "NO") {
-    return L.divIcon({
-      className: `leaflet-marker-icon ${cls}`,
-      iconSize: [12, 12],
-    });
-  }
+// --- helpers to read values safely ---
+function toNum(v) {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (v == null) return null;
+  const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : null;
 }
+
+// Normalize Impact (expects "Future Noise Design Build Impact")
+function getImpact(props) {
+  return yn(props["Future Noise Design Build Impact"]); // "YES" | "NO"
+}
+
+// Get Benefited: prefer existing field if present, otherwise derive via Reduction
+function getBenefited(props) {
+  if ("Benefited" in props) return yn(props.Benefited);
+
+  const future = toNum(props["Future Noise Design Build"]);
+  const barrier = toNum(props["Barrier Design 10ft ALL"]);
+  if (future == null || barrier == null) return "NO"; // conservative default
+  const reduction = Math.round((future - barrier) * 10) / 10; // 1 decimal
+  return reduction >= 5 ? "YES" : "NO";
+}
+
+// buildBarrierPopup Function
 // ##########################
+// Combinations:
+//  YES + NO  -> red
+//  YES + YES -> green
+//  NO  + YES -> yellow
+//  NO  + NO  -> orange
+function makeIcon(props) {
+  const impactYes = getImpact(props) === "YES";
+  const benefYes = getBenefited(props) === "YES";
+
+  let cls;
+  if (impactYes && !benefYes) cls = "red";
+  else if (impactYes && benefYes) cls = "green";
+  else if (!impactYes && benefYes) cls = "yellow";
+  else cls = "orange";
+
+  return L.divIcon({
+    className: `leaflet-marker-icon ${cls}`,
+    iconSize: [12, 12],
+  });
+}
 
 // updateIconStyle Function
 // ##########################
-function updateIconStyle() {
-  if (!receptorsLayer) return;
-  receptorsLayer.eachLayer((layer) => {
-    if (layer instanceof L.Marker) {
-      layer.setIcon(makeIcon(layer.feature.properties));
-    }
-  });
-}
+// function updateIconStyle() {
+//   if (!receptorsLayer) return;
+//   receptorsLayer.eachLayer((layer) => {
+//     if (layer instanceof L.Marker) {
+//       layer.setIcon(makeIcon(layer.feature.properties));
+//     }
+//   });
+// }
 // ##########################
 
 // styleControl Function
@@ -299,7 +372,7 @@ function styleControl() {
   sel.value = impactMode;
   sel.addEventListener("change", () => {
     impactMode = sel.value; // exact field name with spaces
-    updateIconStyle();
+    // updateIconStyle();
   });
 }
 // ##########################
@@ -366,7 +439,7 @@ function drawGeoJson(geojson, l) {
   // Save receptors layer and ensure current mode applies
   if (l === data.sources.receptors) {
     receptorsLayer = layer;
-    updateIconStyle(); // apply the current impactModeKey
+    // updateIconStyle(); // apply the current impactModeKey
   }
 }
 
@@ -410,8 +483,8 @@ function buttonUI() {
   $(data.layout.button).style.top = top;
 
   // Move the dropdown to the same vertical position
-  const ui = $("#ui-controls");
-  if (ui) ui.style.top = top;
+  // const ui = $("#ui-controls");
+  // if (ui) ui.style.top = top;
 }
 // ##########################
 
