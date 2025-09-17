@@ -122,7 +122,6 @@ const data = {
 setLayout();
 buttonUI();
 const map = createBaseMap();
-styleControl();
 addSources();
 
 // add base maps and map panes for layering data
@@ -214,7 +213,7 @@ function buildPopup(properties) {
 
   // --- derive Reduction & Benefited from your updated fields ---
   const future = toNum(properties["Future Noise Design Build"]);
-  const barrier = toNum(properties["Future Noise Levels with Barrier"]);
+  const barrier = toNum(properties["Future Noise with Barrier"]);
   const reduction =
     future != null && barrier != null
       ? Math.round((future - barrier) * 10) / 10
@@ -359,31 +358,6 @@ function makeIcon(props) {
     iconSize: [12, 12],
   });
 }
-
-// updateIconStyle Function
-// ##########################
-// function updateIconStyle() {
-//   if (!receptorsLayer) return;
-//   receptorsLayer.eachLayer((layer) => {
-//     if (layer instanceof L.Marker) {
-//       layer.setIcon(makeIcon(layer.feature.properties));
-//     }
-//   });
-// }
-// ##########################
-
-// styleControl Function
-// ##########################
-function styleControl() {
-  const sel = document.getElementById("impactModeSel");
-  if (!sel) return;
-  sel.value = impactMode;
-  sel.addEventListener("change", () => {
-    impactMode = sel.value; // exact field name with spaces
-    // updateIconStyle();
-  });
-}
-// ##########################
 
 // drawGeoJson Function
 // ##########################
