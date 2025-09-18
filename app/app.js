@@ -178,8 +178,7 @@ function addSources() {
 // buildPopup Function
 // ##########################
 function buildPopup(properties) {
-  // Fields to ignore in popup
-  const exclude = [
+  const baseExclude = [
     "OBJECTID",
     "X",
     "Y",
@@ -192,57 +191,50 @@ function buildPopup(properties) {
     "PM_EndTime",
     "AMValidation",
     "PMValidation",
-    "Activity_Criteria",
-    "NAC_Category",
+    "Activity Criteria",
+    "NAC Category",
     "MeasurementSite",
-    "Reduction",
-    "Benefited",
+    "Receptor Height (ft)",
   ];
 
-  // --- helpers ---
-  const toNum = (v) => {
-    if (typeof v === "number") return Number.isFinite(v) ? v : null;
-    if (v == null) return null;
-    const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
-    return Number.isFinite(n) ? n : null;
-  };
+  // helpers
+  const norm = (s) => String(s).normalize("NFKC").replace(/\s+/g, " ").trim();
+  const isImpactKey = (k) => /\bimpact\b/i.test(norm(k));
+  const isBenefitedKey = (k) => /\bbenefit/i.test(norm(k));
 
-  // robust Impact-key detector (normalize + collapse spaces)
-  const isImpactKey = (k) =>
-    /\bimpact\b/i.test(String(k).normalize("NFKC").replace(/\s+/g, " ").trim());
+  const exclude = new Set(baseExclude);
 
-  // --- derive Reduction & Benefited from your updated fields ---
-  const future = toNum(properties["Future Noise Design Build"]);
-  const barrier = toNum(properties["Future Noise with Barrier"]);
-  const reduction =
-    future != null && barrier != null
-      ? Math.round((future - barrier) * 10) / 10
-      : null;
-
-  const benefited = reduction == null ? "—" : reduction >= 5 ? "YES" : "NO";
-
-  // --- build rows ---
   let html = "<div class='popup-content'>";
 
+  // Build rows
   for (const rawKey in properties) {
-    if (!properties.hasOwnProperty(rawKey) || exclude.includes(rawKey))
+    if (!Object.prototype.hasOwnProperty.call(properties, rawKey)) continue;
+    if (exclude.has(rawKey)) continue;
+
+    const rawVal = properties[rawKey];
+
+    // Skip null/undefined OR blank strings (keep 0 / false)
+    if (rawVal == null || (typeof rawVal === "string" && rawVal.trim() === ""))
       continue;
 
-    const key = rawKey; // keep label
-    let value = properties[key];
+    const key = rawKey;
+    let value = rawVal;
 
-    // format numbers
+    // number formatting
     if (typeof value === "number") {
       value = Number.isInteger(value) ? value : value.toFixed(1);
     }
-    if (value == null || value === "") value = "—";
 
-    // Color ONLY Impact rows:
-    //   YES => red, NO => green, else uncolored
+    // Coloring:
+    //  - Any "*Impact*" row: YES -> red, NO -> green, else uncolored
+    //  - Any "*Benefited*" row: YES -> green, otherwise -> red
     let vClass = "";
     if (isImpactKey(key)) {
-      const ynVal = yn(properties[key]); // normalize on raw value
+      const ynVal = yn(rawVal);
       vClass = ynVal === "YES" ? "red" : ynVal === "NO" ? "green" : "";
+    } else if (isBenefitedKey(key)) {
+      const ynVal = yn(rawVal);
+      vClass = ynVal === "YES" ? "green" : "red";
     }
 
     html += `
@@ -253,32 +245,16 @@ function buildPopup(properties) {
       </div>`;
   }
 
-  // Derived rows (Benefited YES => green)
-  html += `
-    <div class="kv-row">
-      <span class="key">Reduction:</span>
-      <span class="dots" aria-hidden="true"></span>
-      <span class="value">${reduction == null ? "—" : reduction}</span>
-    </div>
-    <div class="kv-row">
-      <span class="key">Benefited:</span>
-      <span class="dots" aria-hidden="true"></span>
-      <span class="value ${
-        benefited === "YES" ? "green" : "red"
-      }">${benefited}</span>
-    </div>`;
-
   html += "</div>";
   return html;
 }
-
 // ##########################
 
 // buildBarrierPopup Function
 // ##########################
 function buildBarrierPopup(p) {
   const exclude = new Set(["OBJECTID"]);
-  const currencyKeys = new Set(["Cost", "CBR"]);
+  const currencyKeys = new Set(["Segment Cost"]);
 
   const rows = Object.keys(p)
     .filter((k) => !exclude.has(k))
@@ -407,7 +383,7 @@ function drawGeoJson(geojson, l) {
 
         // optional hover highlight for line barriers
         layer.on("mouseover", () =>
-          layer.setStyle({ weight: 6, color: "#7ffeff" })
+          layer.setStyle({ weight: 6, color: "#FF0" })
         );
         layer.on("mouseout", () => layer.setStyle(l.styles));
       }
