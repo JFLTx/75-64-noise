@@ -333,7 +333,7 @@ function addGeoJsonLayersFor(l, sourceId) {
       type: "fill",
       source: sourceId,
       paint: {
-        "fill-color": l.styles.fillColor || "#e3dfa6",
+        "fill-color": l.styles.fillColor || "#ffffffff",
         "fill-opacity": l.styles.fillOpacity ?? 0.0,
       },
     });
@@ -523,29 +523,29 @@ function deserializeProps(p) {
 // =========================
 //  pitch controls function
 // =========================
-(function wirePitchUI() {
-  const slider = document.getElementById("pitchRange");
-  const label = document.getElementById("pitchValue");
-  if (!slider || !label) return;
+// (function wirePitchUI() {
+//   const slider = document.getElementById("pitchRange");
+//   const label = document.getElementById("pitchValue");
+//   if (!slider || !label) return;
 
-  const setLabel = (p) => (label.textContent = `${Math.round(p)}°`);
+//   const setLabel = (p) => (label.textContent = `${Math.round(p)}°`);
 
-  // Update map when slider changes
-  slider.addEventListener("input", (e) => {
-    const pitch = Number(e.target.value);
-    map.easeTo({ pitch, duration: 300 });
-    setLabel(pitch);
-  });
+//   // Update map when slider changes
+//   slider.addEventListener("input", (e) => {
+//     const pitch = Number(e.target.value);
+//     map.easeTo({ pitch, duration: 300 });
+//     setLabel(pitch);
+//   });
 
-  // Keep slider/label in sync when user right-drags or uses touch
-  const sync = () => {
-    const p = map.getPitch();
-    slider.value = String(Math.round(p));
-    setLabel(p);
-  };
-  map.on("pitchend", sync);
-  map.on("moveend", sync); // catches rotate+pitch drags together
-})();
+//   // Keep slider/label in sync when user right-drags or uses touch
+//   const sync = () => {
+//     const p = map.getPitch();
+//     slider.value = String(Math.round(p));
+//     setLabel(p);
+//   };
+//   map.on("pitchend", sync);
+//   map.on("moveend", sync); // catches rotate+pitch drags together
+// })();
 
 // =========================
 //  buildPopup

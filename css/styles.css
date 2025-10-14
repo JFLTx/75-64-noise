@@ -163,6 +163,22 @@ h2:active {
   background: var(--orange);
 }
 
+#ui-controls {
+  position: absolute;
+  z-index: 700;
+  bottom: 30px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: var(--background);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  color: var(--light);
+  font-family: var(--font);
+}
+
 #ui-controls input[type="range"] {
   width: 120px;
 }
@@ -173,7 +189,7 @@ h2:active {
 }
 
 #ui-controls label {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 #modal {
