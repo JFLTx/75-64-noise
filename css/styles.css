@@ -163,30 +163,13 @@ h2:active {
   background: var(--orange);
 }
 
-#ui-controls {
-  position: absolute;
-  z-index: 650;
-  top: 30px;
-  right: 10px;
-  background: var(--background);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: 6px 8px;
-  color: var(--light);
-  font-family: var(--font);
-  display: flex;
-  gap: 6px;
-  align-items: center;
+#ui-controls input[type="range"] {
+  width: 120px;
 }
-
-#ui-controls select {
-  background: transparent;
-  color: var(--light);
-  border: 1px solid var(--light);
-  background: var(--background);
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-size: 1rem;
+#ui-controls span {
+  min-width: 2.5rem;
+  text-align: right;
+  display: inline-block;
 }
 
 #ui-controls label {
@@ -372,7 +355,6 @@ h2:active {
   box-shadow: var(--shadow);
   border: var(--border);
   border-radius: var(--radius);
-  
 }
 
 .maplibregl-popup-tip {
@@ -382,8 +364,6 @@ h2:active {
 .maplibregl-popup-close-button {
   color: var(--light);
 }
-
-
 
 .kv-row {
   display: flex;

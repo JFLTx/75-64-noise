@@ -1,5 +1,4 @@
-
-let receptorsLayer; 
+let receptorsLayer;
 let impactMode = "Existing Noise Impact";
 
 function yn(value) {
@@ -19,8 +18,8 @@ const data = {
       center: [42, -100],
       zoom: 1,
       maxZoom: 22,
-      zoomSnap: 0.25, 
-      zoomDelta: 0.25, 
+      zoomSnap: 0.25,
+      zoomDelta: 0.25,
       zoomControl: false,
     },
     tiles: {
@@ -52,7 +51,7 @@ const data = {
         },
       },
     },
-    // Leaflet panes 
+    // Leaflet panes
     panes: ["ROW", "studyArea", "receptors", "barrier", "top"],
   },
   sources: {
@@ -66,6 +65,17 @@ const data = {
       pane: "ROW",
       fields: [],
       interactive: false,
+      raw: false,
+    },
+    buildingFootprints: {
+      geojson: "data/building-footprints.geojson",
+      styles: {
+        color: "#d4fdfdff",
+        opacity: 0.9,
+      },
+      pane: "studyArea",
+      fields: ["H"], // height (ft)
+      interactive: true,
       raw: false,
     },
     noiseBuffer: {
@@ -97,15 +107,13 @@ const data = {
       raw: false,
     },
     barriers: {
-      geojson: "data/proposed-barrier.geojson",
+      geojson: "data/proposed-barrier-polygon.geojson",
       styles: {
-        radius: 4,
         color: "#00FFFF",
-        weight: 4,
         opacity: 1,
       },
       pane: "barrier",
-      fields: ["Name"],
+      fields: ["Name", "Barrier Segment Height (ft)"],
       interactive: true,
       raw: false,
     },
@@ -124,7 +132,7 @@ const data = {
 };
 
 // =========================
-//  Kickoff 
+//  Kickoff
 // =========================
 setLayout();
 buttonUI();
@@ -135,7 +143,6 @@ addSources();
 //  MapLibre base map
 // =========================
 function createBaseMap() {
-  
   const lat = data.map.options.center[0];
   const lng = data.map.options.center[1];
 
@@ -150,30 +157,73 @@ function createBaseMap() {
     zoom: data.map.options.zoom,
     maxZoom: data.map.options.maxZoom,
     attributionControl: false,
+    antialias: true,
+    maxPitch: 85,
   });
 
- 
   m.addControl(new maplibregl.AttributionControl({ compact: true }));
 
+  m.addControl(
+    new maplibregl.NavigationControl({
+      showCompass: true,
+      showZoom: true,
+    }),
+    "top-right"
+  );
 
- 
   m.on("load", () => {
+    m.setPitch(55);
+    m.setBearing(20);
+    m.dragRotate.enable();
+    m.touchZoomRotate.enableRotation();
     // Base (raster)
-    m.addSource("base-tiles", {
+    // m.addSource("base-tiles", {
+    //   type: "raster",
+    //   tiles: data.map.tiles.base.url,
+    //   tileSize: 256,
+    //   maxzoom: data.map.tiles.base.options.maxNativeZoom ?? 19,
+    //   attribution: data.map.tiles.base.options.attribution,
+    // });
+    // m.addLayer({
+    //   id: "base-tiles",
+    //   type: "raster",
+    //   source: "base-tiles",
+    //   paint: { "raster-opacity": data.map.tiles.base.options.opacity ?? 1 },
+    // });
+
+    m.addLayer({
+      id: "background",
+      type: "background",
+      paint: {
+        "background-color": "rgba(195, 175, 165, 1)",
+        "background-opacity": 1,
+      },
+    });
+
+    m.addSource("aerial", {
       type: "raster",
-      tiles: data.map.tiles.base.url,
+      tiles: [
+        "https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/Ky_Imagery_Phase3_3IN_WGS84WM/MapServer/tile/{z}/{y}/{x}",
+      ],
       tileSize: 256,
-      maxzoom: data.map.tiles.base.options.maxNativeZoom ?? 19,
-      attribution: data.map.tiles.base.options.attribution,
+      maxzoom: 21,
+      attribution:
+        'Imagery © <a href="https://kygisserver.ky.gov">KyFromAbove</a>',
     });
     m.addLayer({
-      id: "base-tiles",
+      id: "aerial",
       type: "raster",
-      source: "base-tiles",
-      paint: { "raster-opacity": data.map.tiles.base.options.opacity ?? 1 },
+      source: "aerial",
+      layout: { visibility: "visible" },
+      paint: {
+        "raster-brightness-min": 0.3,
+        "raster-saturation": 0.5,
+        "raster-hue-rotate": 20,
+        "raster-opacity": 1,
+      },
     });
 
-    // Labels (raster) — 
+    // Labels (raster) —
     m.addSource("label-tiles", {
       type: "raster",
       tiles: data.map.tiles.labels.url,
@@ -198,7 +248,8 @@ function createBaseMap() {
 function addSources() {
   const src = data.sources;
   const layersToPlace = [
-    src.existingRow, 
+    src.existingRow,
+    src.buildingFootprints,
     src.noiseBuffer,
     src.receptors,
     src.barriers,
@@ -233,12 +284,19 @@ function addSources() {
         console.error(data.error.process, err);
       }
     }
+    map.setLight({
+      anchor: "viewport",
+      color: "white",
+      intensity: 0.6,
+      position: [1.5, 150, 80], // [radial, azimuthal, polar] in degrees
+    });
   });
 }
 
 // Create a stable source id for each config block
 function getSourceId(l) {
   if (l === data.sources.existingRow) return "existingRow-src";
+  if (l === data.sources.buildingFootprints) return "buildingFootprints-src";
   if (l === data.sources.noiseBuffer) return "noiseBuffer-src";
   if (l === data.sources.receptors) return "receptors-src";
   if (l === data.sources.barriers) return "barriers-src";
@@ -276,7 +334,7 @@ function addGeoJsonLayersFor(l, sourceId) {
       source: sourceId,
       paint: {
         "fill-color": l.styles.fillColor || "#e3dfa6",
-        "fill-opacity": l.styles.fillOpacity ?? 0.2,
+        "fill-opacity": l.styles.fillOpacity ?? 0.0,
       },
     });
     map.addLayer({
@@ -306,38 +364,81 @@ function addGeoJsonLayersFor(l, sourceId) {
     return;
   }
 
-  if (l === data.sources.barriers) {
-    map.addLayer({
-      id: "barriers-line",
-      type: "line",
-      source: sourceId,
-      paint: {
-        "line-color": l.styles.color || "#00FFFF",
-        "line-width": l.styles.weight ?? 4,
-        "line-opacity": l.styles.opacity ?? 1,
+  if (l === data.sources.buildingFootprints) {
+    // Extruded buildings
+    map.addLayer(
+      {
+        id: "buildings-extrusion",
+        type: "fill-extrusion",
+        source: sourceId,
+        paint: {
+          "fill-extrusion-color": l.styles.color || "#a9b7c9",
+          "fill-extrusion-height": [
+            "*",
+            ["coalesce", ["to-number", ["get", "H"]], 0],
+            0.3048, // feet -> meters
+          ],
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": l.styles.opacity ?? 0.9,
+        },
       },
-    });
+      "label-tiles"
+    );
+  }
+  if (l === data.sources.barriers) {
+    map.addLayer(
+      {
+        id: "barrier3D-extrusion",
+        type: "fill-extrusion",
+        source: sourceId,
+        paint: {
+          "fill-extrusion-color": l.styles.color || "#00ffff",
+          "fill-extrusion-height": [
+            "*",
+            [
+              "coalesce",
+              ["to-number", ["get", "Barrier Segment Height (ft)"]],
+              0,
+            ],
+            0.3048, // feet -> meters
+          ],
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": l.styles.opacity ?? 0.95,
+        },
+      },
+      "label-tiles"
+    );
 
-    // Popups on click
-    map.on("click", "barriers-line", (e) => {
-      const f = e.features?.[0]?.properties || {};
+    // Popup (show segment height)
+    map.on("click", "barrier3D-extrusion", (e) => {
+      const p = e.features?.[0]?.properties || {};
+      const ft = Number(p["Barrier Segment Height (ft)"]);
+      const hText = Number.isFinite(ft) ? `${ft.toFixed(1)} ft` : "—";
       new maplibregl.Popup({ className: data.popupOptions.className })
         .setLngLat(e.lngLat)
-        .setHTML(buildBarrierPopup(deserializeProps(f)))
+        .setHTML(
+          `
+        <div class="popup-content">
+          <div class="kv-row">
+            <span class="key">Barrier Height:</span>
+            <span class="dots" aria-hidden="true"></span>
+            <span class="value">${hText}</span>
+          </div>
+        </div>
+      `
+        )
         .addTo(map);
     });
-
-    // Hover highlight
-    map.on("mouseenter", "barriers-line", () => {
-      map.getCanvas().style.cursor = "pointer";
-      map.setPaintProperty("barriers-line", "line-width", (l.styles.weight ?? 4) + 2);
-      map.setPaintProperty("barriers-line", "line-color", "#FFFF00");
-    });
-    map.on("mouseleave", "barriers-line", () => {
-      map.getCanvas().style.cursor = "";
-      map.setPaintProperty("barriers-line", "line-width", l.styles.weight ?? 4);
-      map.setPaintProperty("barriers-line", "line-color", l.styles.color || "#00FFFF");
-    });
+    map.on(
+      "mouseenter",
+      "barrier3D-extrusion",
+      () => (map.getCanvas().style.cursor = "pointer")
+    );
+    map.on(
+      "mouseleave",
+      "barrier3D-extrusion",
+      () => (map.getCanvas().style.cursor = "")
+    );
     return;
   }
 
@@ -351,17 +452,21 @@ function addGeoJsonLayersFor(l, sourceId) {
         "circle-radius": [
           "case",
           ["boolean", ["feature-state", "hover"], false],
-          6, 
+          6,
           l.styles.radius ?? 4,
         ],
         "circle-color": [
           "match",
           ["get", "cls"],
-          "red", "#e61e1e",
-          "green", "#00cc2c",
-          "yellow", "#fffA3d",
-          "orange", "#ff7d18",
-         l.styles.fillColor || "#e31a1c",
+          "red",
+          "#e61e1e",
+          "green",
+          "#00cc2c",
+          "yellow",
+          "#fffA3d",
+          "orange",
+          "#ff7d18",
+          l.styles.fillColor || "#e31a1c",
         ],
         "circle-stroke-color": l.styles.color || "#000000",
         "circle-stroke-width": l.styles.weight ?? 0.5,
@@ -369,7 +474,7 @@ function addGeoJsonLayersFor(l, sourceId) {
       },
     });
 
-    receptorsLayer = "receptors-circles"; 
+    receptorsLayer = "receptors-circles";
 
     // Hover feature-state
     let hoveredId = null;
@@ -378,15 +483,24 @@ function addGeoJsonLayersFor(l, sourceId) {
       const f = e.features?.[0];
       if (!f || typeof f.id !== "number") return;
       if (hoveredId !== null) {
-        map.setFeatureState({ source: "receptors-src", id: hoveredId }, { hover: false });
+        map.setFeatureState(
+          { source: "receptors-src", id: hoveredId },
+          { hover: false }
+        );
       }
       hoveredId = f.id;
-      map.setFeatureState({ source: "receptors-src", id: hoveredId }, { hover: true });
+      map.setFeatureState(
+        { source: "receptors-src", id: hoveredId },
+        { hover: true }
+      );
     });
     map.on("mouseleave", "receptors-circles", () => {
       map.getCanvas().style.cursor = "";
       if (hoveredId !== null) {
-        map.setFeatureState({ source: "receptors-src", id: hoveredId }, { hover: false });
+        map.setFeatureState(
+          { source: "receptors-src", id: hoveredId },
+          { hover: false }
+        );
       }
       hoveredId = null;
     });
@@ -407,7 +521,34 @@ function deserializeProps(p) {
 }
 
 // =========================
-//  Your original popup logic
+//  pitch controls function
+// =========================
+(function wirePitchUI() {
+  const slider = document.getElementById("pitchRange");
+  const label = document.getElementById("pitchValue");
+  if (!slider || !label) return;
+
+  const setLabel = (p) => (label.textContent = `${Math.round(p)}°`);
+
+  // Update map when slider changes
+  slider.addEventListener("input", (e) => {
+    const pitch = Number(e.target.value);
+    map.easeTo({ pitch, duration: 300 });
+    setLabel(pitch);
+  });
+
+  // Keep slider/label in sync when user right-drags or uses touch
+  const sync = () => {
+    const p = map.getPitch();
+    slider.value = String(Math.round(p));
+    setLabel(p);
+  };
+  map.on("pitchend", sync);
+  map.on("moveend", sync); // catches rotate+pitch drags together
+})();
+
+// =========================
+//  buildPopup
 // =========================
 function buildPopup(properties) {
   const baseExclude = [
@@ -444,7 +585,8 @@ function buildPopup(properties) {
     if (exclude.has(rawKey)) continue;
 
     const rawVal = properties[rawKey];
-    if (rawVal == null || (typeof rawVal === "string" && rawVal.trim() === "")) continue;
+    if (rawVal == null || (typeof rawVal === "string" && rawVal.trim() === ""))
+      continue;
 
     const key = rawKey;
     let value = rawVal;
@@ -509,7 +651,7 @@ function buildBarrierPopup(p) {
 }
 
 // =========================
-//  Your original helpers
+// Helper Functions
 // =========================
 function toNum(v) {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
@@ -559,10 +701,14 @@ function createGeoJson(data) {
 
 function getGeoJSONBounds(fc) {
   if (!fc || !fc.features?.length) return null;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   const scan = (coords) => {
     if (typeof coords[0] === "number" && typeof coords[1] === "number") {
-      const x = coords[0], y = coords[1];
+      const x = coords[0],
+        y = coords[1];
       if (x < minX) minX = x;
       if (y < minY) minY = y;
       if (x > maxX) maxX = x;
@@ -577,11 +723,14 @@ function getGeoJSONBounds(fc) {
     scan(g.coordinates);
   }
   if (!Number.isFinite(minX)) return null;
-  return [[minX, minY], [maxX, maxY]];
+  return [
+    [minX, minY],
+    [maxX, maxY],
+  ];
 }
 
 // =========================
-//  Your minimal DOM utils
+// DOM utils
 // =========================
 function $(selector) {
   return document.querySelector(selector);
