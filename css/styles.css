@@ -347,12 +347,14 @@ h2:active {
   color: var(--orange);
 }
 
-.leaflet-tooltip-own {
+/* === MapLibre popup styling (replacing Leaflet selectors) === */
+
+.ml-tooltip-own {
   font-size: 1.2em;
   font-family: var(--font);
 }
 
-.leaflet-tooltip-own h3 {
+.ml-tooltip-own h3 {
   font-size: 1.4em;
   font-weight: bold;
   line-height: 1em;
@@ -360,53 +362,28 @@ h2:active {
   margin: 0.5em 0 0.8em 0;
 }
 
-.leaflet-popup-content-wrapper {
-  border-radius: var(--radius);
-  border: var(--border);
+.maplibregl-popup {
+  /* wrapper; keep background via content */
 }
 
-.leaflet-popup-content-wrapper,
-.leaflet-popup-content {
-  width: -moz-fit-content;
-  width: fit-content;
-  /* max-width: min(92vw, 640px); */
-}
-
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
+.maplibregl-popup-content {
   background: var(--background);
   color: var(--light);
   box-shadow: var(--shadow);
+  border: var(--border);
+  border-radius: var(--radius);
+  
 }
 
-.leaflet-container a.leaflet-popup-close-button {
+.maplibregl-popup-tip {
+  background: var(--background);
+}
+
+.maplibregl-popup-close-button {
   color: var(--light);
 }
 
-.leaflet-marker-icon.red,
-.leaflet-marker-icon.green,
-.leaflet-marker-icon.yellow,
-.leaflet-marker-icon.orange {
-  border: 2px solid #eeeeee;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
-  transition: transform 0.2s ease;
-}
 
-.leaflet-marker-icon.red {
-  background-color: var(--red);
-}
-.leaflet-marker-icon.green {
-  background-color: var(--green);
-}
-.leaflet-marker-icon.yellow {
-  background-color: var(--yellow);
-}
-.leaflet-marker-icon.orange {
-  background-color: var(--orange);
-}
 
 .kv-row {
   display: flex;

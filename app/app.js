@@ -1,7 +1,5 @@
-// Define variables for sources, styles, and layers
-// ##########################
 
-let receptorsLayer;
+let receptorsLayer; 
 let impactMode = "Existing Noise Impact";
 
 function yn(value) {
@@ -21,13 +19,17 @@ const data = {
       center: [42, -100],
       zoom: 1,
       maxZoom: 22,
-      zoomSnap: 0.25,
-      zoomDelta: 0.25,
+      zoomSnap: 0.25, 
+      zoomDelta: 0.25, 
       zoomControl: false,
     },
     tiles: {
       base: {
-        url: "https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
+        url: [
+          "https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
+          "https://cartodb-basemaps-b.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
+          "https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
+        ],
         options: {
           attribution:
             'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -37,16 +39,20 @@ const data = {
         },
       },
       labels: {
-        url: "https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
+        url: [
+          "https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
+          "https://cartodb-basemaps-b.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
+          "https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
+        ],
         options: {
           attribution:
             'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          pane: "top",
           maxNativeZoom: 19,
           maxZoom: 22,
         },
       },
     },
+    // Leaflet panes 
     panes: ["ROW", "studyArea", "receptors", "barrier", "top"],
   },
   sources: {
@@ -105,7 +111,7 @@ const data = {
     },
   },
   popupOptions: {
-    className: "leaflet-tooltip-own",
+    className: "ml-tooltip-own",
   },
   interactive: {
     color: "cyan",
@@ -117,66 +123,292 @@ const data = {
   },
 };
 
-// set layout and create map
-// ##########################
+// =========================
+//  Kickoff 
+// =========================
 setLayout();
 buttonUI();
 const map = createBaseMap();
 addSources();
 
-// add base maps and map panes for layering data
-// ##########################
+// =========================
+//  MapLibre base map
+// =========================
 function createBaseMap() {
-  const map = L.map("map", data.map.options);
-  data.map.panes.forEach((pane, i) => {
-    map.createPane(pane);
-    map.getPane(pane).style.zIndex = 401 + i;
+  
+  const lat = data.map.options.center[0];
+  const lng = data.map.options.center[1];
+
+  const m = new maplibregl.Map({
+    container: "map",
+    style: {
+      version: 8,
+      sources: {},
+      layers: [],
+    },
+    center: [lng, lat],
+    zoom: data.map.options.zoom,
+    maxZoom: data.map.options.maxZoom,
+    attributionControl: false,
   });
 
-  L.tileLayer(data.map.tiles.base.url, data.map.tiles.base.options).addTo(map);
+ 
+  m.addControl(new maplibregl.AttributionControl({ compact: true }));
 
-  L.tileLayer(data.map.tiles.labels.url, data.map.tiles.labels.options).addTo(
-    map
-  );
 
-  return map;
+ 
+  m.on("load", () => {
+    // Base (raster)
+    m.addSource("base-tiles", {
+      type: "raster",
+      tiles: data.map.tiles.base.url,
+      tileSize: 256,
+      maxzoom: data.map.tiles.base.options.maxNativeZoom ?? 19,
+      attribution: data.map.tiles.base.options.attribution,
+    });
+    m.addLayer({
+      id: "base-tiles",
+      type: "raster",
+      source: "base-tiles",
+      paint: { "raster-opacity": data.map.tiles.base.options.opacity ?? 1 },
+    });
+
+    // Labels (raster) — 
+    m.addSource("label-tiles", {
+      type: "raster",
+      tiles: data.map.tiles.labels.url,
+      tileSize: 256,
+      maxzoom: data.map.tiles.labels.options.maxNativeZoom ?? 19,
+      attribution: data.map.tiles.labels.options.attribution,
+    });
+    m.addLayer({
+      id: "label-tiles",
+      type: "raster",
+      source: "label-tiles",
+      paint: { "raster-opacity": 1 },
+    });
+  });
+
+  return m;
 }
-// ##########################
 
-// add sources of data
-// ##########################
+// =========================
+//  Add data sources/layers
+// =========================
 function addSources() {
   const src = data.sources;
   const layersToPlace = [
-    src.existingRow,
+    src.existingRow, 
     src.noiseBuffer,
     src.receptors,
     src.barriers,
   ];
 
-  layersToPlace.forEach((l) => {
-    fetch(l.geojson)
-      .then((response) => response.json())
-      .then((jsonData) => {
-        // Check if the layer is flagged as needing raw conversion
+  map.on("load", async () => {
+    for (const l of layersToPlace) {
+      try {
+        const response = await fetch(l.geojson);
+        const jsonData = await response.json();
         const geojson = l.raw ? createGeoJson(jsonData) : jsonData;
-        drawGeoJson(geojson, l);
 
-        // Zoom to receptors.geojson
-        if (l === src.receptors) {
-          const bounds = L.geoJSON(geojson).getBounds();
-          map.fitBounds(bounds, { padding: [20, 20] });
+        // Assign feature ids and (for receptors) compute class & filter
+        prepareFeatures(geojson, l);
+
+        const sourceId = getSourceId(l);
+        map.addSource(sourceId, {
+          type: "geojson",
+          data: geojson,
+          promoteId: "fid", // use our assigned numeric id for feature-state
+        });
+
+        // Add layers per geometry
+        addGeoJsonLayersFor(l, sourceId);
+
+        // Zoom to receptors after they load
+        if (l === data.sources.receptors) {
+          const b = getGeoJSONBounds(geojson);
+          if (b) map.fitBounds(b, { padding: 20 });
         }
-      })
-      .catch((error) => {
-        console.error(data.error.process, error);
-      });
+      } catch (err) {
+        console.error(data.error.process, err);
+      }
+    }
   });
 }
-// ##########################
 
-// buildPopup Function
-// ##########################
+// Create a stable source id for each config block
+function getSourceId(l) {
+  if (l === data.sources.existingRow) return "existingRow-src";
+  if (l === data.sources.noiseBuffer) return "noiseBuffer-src";
+  if (l === data.sources.receptors) return "receptors-src";
+  if (l === data.sources.barriers) return "barriers-src";
+  return `src-${Math.random().toString(36).slice(2)}`;
+}
+
+// Ensure features have ids; compute receptor class, filter out measurement sites
+function prepareFeatures(fc, l) {
+  if (!fc || fc.type !== "FeatureCollection") return;
+
+  let i = 1;
+  fc.features = (fc.features || []).filter((f) => {
+    f.properties = f.properties || {};
+    f.properties.fid = f.properties.fid ?? i;
+    f.id = f.properties.fid;
+    i++;
+
+    // receptor-only derived props & filter
+    if (l === data.sources.receptors) {
+      // Filter measurement sites
+      if (yn(f.properties?.MeasurementSite) === "YES") return false;
+
+      // compute receptor class (red/green/yellow/orange)
+      f.properties.cls = classifyReceptor(f.properties);
+    }
+    return true;
+  });
+}
+
+function addGeoJsonLayersFor(l, sourceId) {
+  if (l === data.sources.noiseBuffer) {
+    map.addLayer({
+      id: "noiseBuffer-fill",
+      type: "fill",
+      source: sourceId,
+      paint: {
+        "fill-color": l.styles.fillColor || "#e3dfa6",
+        "fill-opacity": l.styles.fillOpacity ?? 0.2,
+      },
+    });
+    map.addLayer({
+      id: "noiseBuffer-line",
+      type: "line",
+      source: sourceId,
+      paint: {
+        "line-color": l.styles.color || "#ffffff",
+        "line-width": l.styles.weight ?? 3,
+        "line-opacity": 1,
+      },
+    });
+    return;
+  }
+
+  if (l === data.sources.existingRow) {
+    map.addLayer({
+      id: "existingRow-line",
+      type: "line",
+      source: sourceId,
+      paint: {
+        "line-color": l.styles.color || "#ffd900",
+        "line-width": l.styles.weight ?? 2,
+        "line-opacity": l.styles.opacity ?? 0.9,
+      },
+    });
+    return;
+  }
+
+  if (l === data.sources.barriers) {
+    map.addLayer({
+      id: "barriers-line",
+      type: "line",
+      source: sourceId,
+      paint: {
+        "line-color": l.styles.color || "#00FFFF",
+        "line-width": l.styles.weight ?? 4,
+        "line-opacity": l.styles.opacity ?? 1,
+      },
+    });
+
+    // Popups on click
+    map.on("click", "barriers-line", (e) => {
+      const f = e.features?.[0]?.properties || {};
+      new maplibregl.Popup({ className: data.popupOptions.className })
+        .setLngLat(e.lngLat)
+        .setHTML(buildBarrierPopup(deserializeProps(f)))
+        .addTo(map);
+    });
+
+    // Hover highlight
+    map.on("mouseenter", "barriers-line", () => {
+      map.getCanvas().style.cursor = "pointer";
+      map.setPaintProperty("barriers-line", "line-width", (l.styles.weight ?? 4) + 2);
+      map.setPaintProperty("barriers-line", "line-color", "#FFFF00");
+    });
+    map.on("mouseleave", "barriers-line", () => {
+      map.getCanvas().style.cursor = "";
+      map.setPaintProperty("barriers-line", "line-width", l.styles.weight ?? 4);
+      map.setPaintProperty("barriers-line", "line-color", l.styles.color || "#00FFFF");
+    });
+    return;
+  }
+
+  // circle layer with data-driven color + hover scale
+  if (l === data.sources.receptors) {
+    map.addLayer({
+      id: "receptors-circles",
+      type: "circle",
+      source: sourceId,
+      paint: {
+        "circle-radius": [
+          "case",
+          ["boolean", ["feature-state", "hover"], false],
+          6, 
+          l.styles.radius ?? 4,
+        ],
+        "circle-color": [
+          "match",
+          ["get", "cls"],
+          "red", "#e61e1e",
+          "green", "#00cc2c",
+          "yellow", "#fffA3d",
+          "orange", "#ff7d18",
+         l.styles.fillColor || "#e31a1c",
+        ],
+        "circle-stroke-color": l.styles.color || "#000000",
+        "circle-stroke-width": l.styles.weight ?? 0.5,
+        "circle-opacity": l.styles.fillOpacity ?? 0.9,
+      },
+    });
+
+    receptorsLayer = "receptors-circles"; 
+
+    // Hover feature-state
+    let hoveredId = null;
+    map.on("mousemove", "receptors-circles", (e) => {
+      map.getCanvas().style.cursor = "pointer";
+      const f = e.features?.[0];
+      if (!f || typeof f.id !== "number") return;
+      if (hoveredId !== null) {
+        map.setFeatureState({ source: "receptors-src", id: hoveredId }, { hover: false });
+      }
+      hoveredId = f.id;
+      map.setFeatureState({ source: "receptors-src", id: hoveredId }, { hover: true });
+    });
+    map.on("mouseleave", "receptors-circles", () => {
+      map.getCanvas().style.cursor = "";
+      if (hoveredId !== null) {
+        map.setFeatureState({ source: "receptors-src", id: hoveredId }, { hover: false });
+      }
+      hoveredId = null;
+    });
+
+    // Popups
+    map.on("click", "receptors-circles", (e) => {
+      const f = e.features?.[0]?.properties || {};
+      new maplibregl.Popup({ className: data.popupOptions.className })
+        .setLngLat(e.lngLat)
+        .setHTML(buildPopup(deserializeProps(f)))
+        .addTo(map);
+    });
+  }
+}
+
+function deserializeProps(p) {
+  return p;
+}
+
+// =========================
+//  Your original popup logic
+// =========================
 function buildPopup(properties) {
   const baseExclude = [
     "OBJECTID",
@@ -195,9 +427,10 @@ function buildPopup(properties) {
     "NAC Category",
     "MeasurementSite",
     "Receptor Height (ft)",
+    "fid",
+    "cls",
   ];
 
-  // helpers
   const norm = (s) => String(s).normalize("NFKC").replace(/\s+/g, " ").trim();
   const isImpactKey = (k) => /\bimpact\b/i.test(norm(k));
   const isBenefitedKey = (k) => /\bbenefit/i.test(norm(k));
@@ -206,28 +439,20 @@ function buildPopup(properties) {
 
   let html = "<div class='popup-content'>";
 
-  // Build rows
   for (const rawKey in properties) {
     if (!Object.prototype.hasOwnProperty.call(properties, rawKey)) continue;
     if (exclude.has(rawKey)) continue;
 
     const rawVal = properties[rawKey];
-
-    // Skip null/undefined OR blank strings (keep 0 / false)
-    if (rawVal == null || (typeof rawVal === "string" && rawVal.trim() === ""))
-      continue;
+    if (rawVal == null || (typeof rawVal === "string" && rawVal.trim() === "")) continue;
 
     const key = rawKey;
     let value = rawVal;
 
-    // number formatting
     if (typeof value === "number") {
       value = Number.isInteger(value) ? value : value.toFixed(1);
     }
 
-    // Coloring:
-    //  - Any "*Impact*" row: YES -> red, NO -> green, else uncolored
-    //  - Any "*Benefited*" row: YES -> green, otherwise -> red
     let vClass = "";
     if (isImpactKey(key)) {
       const ynVal = yn(rawVal);
@@ -248,12 +473,9 @@ function buildPopup(properties) {
   html += "</div>";
   return html;
 }
-// ##########################
 
-// buildBarrierPopup Function
-// ##########################
 function buildBarrierPopup(p) {
-  const exclude = new Set(["OBJECTID"]);
+  const exclude = new Set(["OBJECTID", "fid"]);
   const currencyKeys = new Set(["Segment Cost"]);
 
   const rows = Object.keys(p)
@@ -286,9 +508,9 @@ function buildBarrierPopup(p) {
   return `<div class="popup-content">${rows}</div>`;
 }
 
-// ##########################
-
-// --- helpers to read values safely ---
+// =========================
+//  Your original helpers
+// =========================
 function toNum(v) {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
   if (v == null) return null;
@@ -296,120 +518,32 @@ function toNum(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-// Normalize Impact (expects "Future Noise Design Build Impact")
 function getImpact(props) {
-  return yn(props["Future Noise Design Build Impact"]); // "YES" | "NO"
+  return yn(props["Future Noise Design Build Impact"]);
 }
 
-// Get Benefited: prefer existing field if present, otherwise derive via Reduction
 function getBenefited(props) {
   if ("Benefited" in props) return yn(props.Benefited);
 
   const future = toNum(props["Future Noise Design Build"]);
   const barrier = toNum(props["Barrier Design 10ft ALL"]);
-  if (future == null || barrier == null) return "NO"; // conservative default
-  const reduction = Math.round((future - barrier) * 10) / 10; // 1 decimal
+  if (future == null || barrier == null) return "NO";
+  const reduction = Math.round((future - barrier) * 10) / 10;
   return reduction >= 5 ? "YES" : "NO";
 }
 
-// buildBarrierPopup Function
-// ##########################
-// Combinations:
-//  YES + NO  -> red
-//  YES + YES -> green
-//  NO  + YES -> yellow
-//  NO  + NO  -> orange
-function makeIcon(props) {
+function classifyReceptor(props) {
   const impactYes = getImpact(props) === "YES";
   const benefYes = getBenefited(props) === "YES";
 
-  let cls;
-  if (impactYes && !benefYes) cls = "red";
-  else if (impactYes && benefYes) cls = "green";
-  else if (!impactYes && benefYes) cls = "yellow";
-  else cls = "orange";
-
-  return L.divIcon({
-    className: `leaflet-marker-icon ${cls}`,
-    iconSize: [12, 12],
-  });
+  if (impactYes && !benefYes) return "red";
+  if (impactYes && benefYes) return "green";
+  if (!impactYes && benefYes) return "yellow";
+  return "orange";
 }
 
-// drawGeoJson Function
-// ##########################
-function drawGeoJson(geojson, l) {
-  const layer = L.geoJSON(geojson, {
-    pane: l.pane,
-    interactive: !!l.interactive,
-    style: function () {
-      return l.styles;
-    },
-    // remove measurement sites
-    filter: function (feature) {
-      if (l === data.sources.receptors) {
-        return yn(feature.properties?.MeasurementSite) !== "YES";
-      }
-      return true; // keeps all other features from other geojson layers
-    },
-    pointToLayer: function (feature, latlng) {
-      if (feature.geometry.type === "Point") {
-        if (l === data.sources.receptors) {
-          return L.marker(latlng, { icon: makeIcon(feature.properties) });
-        }
-        return L.circleMarker(latlng, l.styles);
-      }
-      return null;
-    },
-    onEachFeature: function (feature, layer) {
-      const f = feature.properties;
-
-      if (l === data.sources.receptors) {
-        const popupHtml = buildPopup(f); // your existing receptor popup
-        layer.bindPopup(popupHtml, data.popupOptions);
-
-        // hover effect for receptors (divIcon)
-        layer.on("mouseover", function () {
-          const el = layer._icon || layer.getElement?.();
-          if (el) el.classList.add("hovered");
-        });
-        layer.on("mouseout", function () {
-          const el = layer._icon || layer.getElement?.();
-          if (el) el.classList.remove("hovered");
-        });
-      }
-
-      if (l === data.sources.barriers) {
-        layer.bindPopup(buildBarrierPopup(f), data.popupOptions);
-
-        // optional hover highlight for line barriers
-        layer.on("mouseover", () =>
-          layer.setStyle({ weight: 6, color: "#FF0" })
-        );
-        layer.on("mouseout", () => layer.setStyle(l.styles));
-      }
-    },
-  }).addTo(map);
-
-  if (!l.interactive) {
-    map.getPane(l.pane).style.pointerEvents = "none";
-  }
-
-  // Save receptors layer and ensure current mode applies
-  if (l === data.sources.receptors) {
-    receptorsLayer = layer;
-    // updateIconStyle(); // apply the current impactModeKey
-  }
-}
-
-// ##########################
-
-// process geojson
-// ##########################
 function createGeoJson(data) {
-  const geoJson = {
-    type: "FeatureCollection",
-    features: [],
-  };
+  const geoJson = { type: "FeatureCollection", features: [] };
   const properties = Object.keys(data[0]);
   for (const obj of data) {
     const { geometry, ...props } = obj;
@@ -422,32 +556,43 @@ function createGeoJson(data) {
   }
   return geoJson;
 }
-// ##########################
 
-// mimic jQuery select element Function
-// ##########################
+function getGeoJSONBounds(fc) {
+  if (!fc || !fc.features?.length) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const scan = (coords) => {
+    if (typeof coords[0] === "number" && typeof coords[1] === "number") {
+      const x = coords[0], y = coords[1];
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    } else {
+      for (const c of coords) scan(c);
+    }
+  };
+  for (const f of fc.features) {
+    const g = f.geometry;
+    if (!g) continue;
+    scan(g.coordinates);
+  }
+  if (!Number.isFinite(minX)) return null;
+  return [[minX, minY], [maxX, maxY]];
+}
+
+// =========================
+//  Your minimal DOM utils
+// =========================
 function $(selector) {
   return document.querySelector(selector);
 }
-// ##########################
 
-// buttonUI Function
-// ##########################
 function buttonUI() {
   const titleEl = $(data.layout.title);
   const top = (titleEl ? titleEl.offsetHeight : 0) + 10 + "px";
-
-  // Move the Info button under the title (you already had this)
   $(data.layout.button).style.top = top;
-
-  // Move the dropdown to the same vertical position
-  // const ui = $("#ui-controls");
-  // if (ui) ui.style.top = top;
 }
-// ##########################
 
-// setLayout Function
-// ##########################
 function setLayout() {
   const l = data.layout;
   $(l.button).addEventListener("click", function () {
@@ -458,4 +603,3 @@ function setLayout() {
   });
   window.addEventListener("resize", buttonUI);
 }
-// ##########################
