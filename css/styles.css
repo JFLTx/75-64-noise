@@ -8,6 +8,7 @@
   --green: rgb(0, 204, 44);
   --yellow: rgb(255, 250, 61);
   --orange: #ff7d18;
+  --neutral: rgb(223, 223, 223);  
   --gray: rgba(57, 57, 57, 0.8);
   --background: rgba(25, 25, 25, 0.8);
   --shadow: 0 0 15px rgba(0, 0, 0, 0.2);
@@ -161,6 +162,9 @@ h2:active {
 }
 .legend-swatch.point.orange {
   background: var(--orange);
+}
+.legend-swatch.point.neutral {
+  background: var(--neutral);
 }
 
 #ui-controls {
@@ -343,7 +347,7 @@ h2:active {
 }
 
 #modal .receptor-groups li::marker {
-  color: var(--orange);
+  color: var(--neutral);
 }
 
 /* === MapLibre popup styling (replacing Leaflet selectors) === */
@@ -362,7 +366,7 @@ h2:active {
 }
 
 .maplibregl-popup {
-  /* wrapper; keep background via content */
+ max-width: 750px !important;
 }
 
 .maplibregl-popup-content {
@@ -371,6 +375,9 @@ h2:active {
   box-shadow: var(--shadow);
   border: var(--border);
   border-radius: var(--radius);
+  padding: 14px 16px;
+  max-width: none;
+  width: auto;
 }
 
 .maplibregl-popup-tip {
@@ -466,5 +473,9 @@ h2:active {
     bottom: calc(env(safe-area-inset-bottom, 0) + 20px) !important;
     right: 12px;
     left: auto;
+  }
+
+    .maplibregl-popup {
+    max-width: min(92vw, 520px) !important;
   }
 }

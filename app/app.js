@@ -319,7 +319,7 @@ function prepareFeatures(fc, l) {
       // Filter measurement sites
       if (yn(f.properties?.MeasurementSite) === "YES") return false;
 
-      // compute receptor class (red/green/yellow/orange)
+      // compute receptor class (red/green/yellow/neutral)
       f.properties.cls = classifyReceptor(f.properties);
     }
     return true;
@@ -452,8 +452,8 @@ function addGeoJsonLayersFor(l, sourceId) {
         "circle-radius": [
           "case",
           ["boolean", ["feature-state", "hover"], false],
-          6,
-          l.styles.radius ?? 4,
+          8,
+          l.styles.radius ?? 6,
         ],
         "circle-color": [
           "match",
@@ -464,12 +464,12 @@ function addGeoJsonLayersFor(l, sourceId) {
           "#00cc2c",
           "yellow",
           "#fffA3d",
-          "orange",
-          "#ff7d18",
+          "neutral",
+          "rgb(223, 223, 223)",
           l.styles.fillColor || "#e31a1c",
         ],
         "circle-stroke-color": l.styles.color || "#000000",
-        "circle-stroke-width": l.styles.weight ?? 0.5,
+        "circle-stroke-width": l.styles.weight ?? 0.6,
         "circle-opacity": l.styles.fillOpacity ?? 0.9,
       },
     });
@@ -681,7 +681,7 @@ function classifyReceptor(props) {
   if (impactYes && !benefYes) return "red";
   if (impactYes && benefYes) return "green";
   if (!impactYes && benefYes) return "yellow";
-  return "orange";
+  return "neutral";
 }
 
 function createGeoJson(data) {
