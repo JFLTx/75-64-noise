@@ -94,7 +94,7 @@ const data = {
     receptors: {
       geojson: "data/receptors.geojson",
       styles: {
-        radius: 4,
+        radius: 5,
         fillColor: "#e31a1c",
         color: "#000",
         weight: 0.5,
@@ -216,7 +216,7 @@ function createBaseMap() {
       source: "aerial",
       layout: { visibility: "visible" },
       paint: {
-        "raster-brightness-min": 0.3,
+        "raster-brightness-min": 0.2,
         "raster-saturation": 0.5,
         "raster-hue-rotate": 20,
         "raster-opacity": 1,
@@ -453,7 +453,7 @@ function addGeoJsonLayersFor(l, sourceId) {
           "case",
           ["boolean", ["feature-state", "hover"], false],
           8,
-          l.styles.radius ?? 6,
+          l.styles.radius ?? 8,
         ],
         "circle-color": [
           "match",
