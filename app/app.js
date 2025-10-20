@@ -151,6 +151,7 @@ function createBaseMap() {
     style: {
       version: 8,
       sources: {},
+      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       layers: [],
     },
     center: [lng, lat],
@@ -471,6 +472,32 @@ function addGeoJsonLayersFor(l, sourceId) {
         "circle-stroke-color": l.styles.color || "#000000",
         "circle-stroke-width": l.styles.weight ?? 0.6,
         "circle-opacity": l.styles.fillOpacity ?? 0.9,
+      },
+    });
+
+    map.addLayer({
+      id: "receptors-labels",
+      type: "symbol",
+      source: sourceId,
+      minzoom: 14,
+      layout: {
+        "text-field": [
+          "coalesce",
+          ["get", "Name"],
+          ["get", "ReceiverName"],
+          "",
+        ],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 16, 12],
+        "text-anchor": "left", 
+        "text-offset": [0.9, 0], 
+        "text-allow-overlap": false,
+        "text-optional": true, 
+      },
+      paint: {
+        "text-color": "#ffffff",
+        "text-halo-color": "rgba(0,0,0,0.85)",
+        "text-halo-width": 1.25,
       },
     });
 
