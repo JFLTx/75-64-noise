@@ -92,7 +92,7 @@ const data = {
       raw: false,
     },
     receptors: {
-      geojson: "data/receptors.geojson",
+      geojson: "data/receptors-updated.geojson",
       styles: {
         radius: 5,
         fillColor: "#e31a1c",
@@ -107,7 +107,7 @@ const data = {
       raw: false,
     },
     barriers: {
-      geojson: "data/proposed-barrier-polygon.geojson",
+      geojson: "data/proposed-split-barrier-updated.geojson",
       styles: {
         color: "#00FFFF",
         opacity: 1,
@@ -138,6 +138,7 @@ setLayout();
 buttonUI();
 const map = createBaseMap();
 addSources();
+responsiveLegend();
 
 // =========================
 //  MapLibre base map
@@ -177,20 +178,6 @@ function createBaseMap() {
     m.setBearing(20);
     m.dragRotate.enable();
     m.touchZoomRotate.enableRotation();
-    // Base (raster)
-    // m.addSource("base-tiles", {
-    //   type: "raster",
-    //   tiles: data.map.tiles.base.url,
-    //   tileSize: 256,
-    //   maxzoom: data.map.tiles.base.options.maxNativeZoom ?? 19,
-    //   attribution: data.map.tiles.base.options.attribution,
-    // });
-    // m.addLayer({
-    //   id: "base-tiles",
-    //   type: "raster",
-    //   source: "base-tiles",
-    //   paint: { "raster-opacity": data.map.tiles.base.options.opacity ?? 1 },
-    // });
 
     m.addLayer({
       id: "background",
@@ -410,23 +397,87 @@ function addGeoJsonLayersFor(l, sourceId) {
       "label-tiles"
     );
 
+    // Text labels for barrier heights (on polygon centroids)
+    map.addLayer(
+      {
+        id: "barrier3D-labels",
+        type: "symbol",
+        source: sourceId,
+        minzoom: 15,
+        layout: {
+          "text-field": [
+            "case",
+            ["has", "Barrier Segment Height (ft)"],
+            [
+              "concat",
+              [
+                "to-string",
+                [
+                  "/",
+                  [
+                    "round",
+                    [
+                      "*",
+                      ["to-number", ["get", "Barrier Segment Height (ft)"]],
+                      10,
+                    ],
+                  ],
+                  10,
+                ],
+              ],
+              " ft",
+            ],
+            "",
+          ],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 15, 10, 17, 16],
+          "symbol-placement": "point",
+          "text-offset": [0, -1],
+          "text-allow-overlap": false,
+          "text-optional": true,
+          "text-pitch-alignment": "viewport",
+          "text-rotation-alignment": "viewport",
+        },
+        paint: {
+          "text-color": "#ffffff",
+          "text-halo-color": "rgba(0,0,0,0.85)",
+          "text-halo-width": 1.25,
+        },
+      },
+      "label-tiles"
+    );
+
     // Popup (show segment height)
     map.on("click", "barrier3D-extrusion", (e) => {
       const p = e.features?.[0]?.properties || {};
-      const ft = Number(p["Barrier Segment Height (ft)"]);
-      const hText = Number.isFinite(ft) ? `${ft.toFixed(1)} ft` : "—";
+      // Height
+      const heightFt = Number(p["Barrier Segment Height (ft)"]);
+      const heightText = Number.isFinite(heightFt)
+        ? `${heightFt.toFixed(1)} ft`
+        : "—";
+      // cost
+      const rawCost = Number(p["Cost"]);
+      const costText = Number.isFinite(rawCost)
+        ? `$${Math.round(rawCost).toLocaleString()}`
+        : "—";
+
       new maplibregl.Popup({ className: data.popupOptions.className })
         .setLngLat(e.lngLat)
         .setHTML(
           `
-        <div class="popup-content">
-          <div class="kv-row">
-            <span class="key">Barrier Height:</span>
-            <span class="dots" aria-hidden="true"></span>
-            <span class="value">${hText}</span>
-          </div>
+      <div class="popup-content">
+        <div class="kv-row">
+          <span class="key">Barrier Height:</span>
+          <span class="dots" aria-hidden="true"></span>
+          <span class="value">${heightText}</span>
         </div>
-      `
+        <div class="kv-row">
+          <span class="key">Segment Cost:</span>
+          <span class="dots" aria-hidden="true"></span>
+          <span class="value">${costText}</span>
+        </div>
+      </div>
+    `
         )
         .addTo(map);
     });
@@ -489,10 +540,10 @@ function addGeoJsonLayersFor(l, sourceId) {
         ],
         "text-font": ["Noto Sans Regular"],
         "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 16, 12],
-        "text-anchor": "left", 
-        "text-offset": [0.9, 0], 
+        "text-anchor": "left",
+        "text-offset": [0.9, 0],
         "text-allow-overlap": false,
-        "text-optional": true, 
+        "text-optional": true,
       },
       paint: {
         "text-color": "#ffffff",
@@ -546,33 +597,6 @@ function addGeoJsonLayersFor(l, sourceId) {
 function deserializeProps(p) {
   return p;
 }
-
-// =========================
-//  pitch controls function
-// =========================
-// (function wirePitchUI() {
-//   const slider = document.getElementById("pitchRange");
-//   const label = document.getElementById("pitchValue");
-//   if (!slider || !label) return;
-
-//   const setLabel = (p) => (label.textContent = `${Math.round(p)}°`);
-
-//   // Update map when slider changes
-//   slider.addEventListener("input", (e) => {
-//     const pitch = Number(e.target.value);
-//     map.easeTo({ pitch, duration: 300 });
-//     setLabel(pitch);
-//   });
-
-//   // Keep slider/label in sync when user right-drags or uses touch
-//   const sync = () => {
-//     const p = map.getPitch();
-//     slider.value = String(Math.round(p));
-//     setLabel(p);
-//   };
-//   map.on("pitchend", sync);
-//   map.on("moveend", sync); // catches rotate+pitch drags together
-// })();
 
 // =========================
 //  buildPopup
@@ -778,4 +802,29 @@ function setLayout() {
     $(l.modal).style.display = "none";
   });
   window.addEventListener("resize", buttonUI);
+}
+
+function responsiveLegend() {
+  const legend = document.getElementById("legend");
+  const dock = document.getElementById("legend-dock");
+  const mq = window.matchMedia("(max-width: 576px)");
+
+  function placeLegend() {
+    if (!legend || !dock) return;
+    if (mq.matches) {
+      // Mobile: put legend inside modal
+      dock.appendChild(legend);
+      legend.classList.remove("legend-floating");
+    } else {
+      // Desktop/tablet: float over map (bottom-left)
+      // Either of these is fine:
+      document.body.appendChild(legend); // pinned to viewport
+      // or: document.getElementById("map").after(legend);
+      legend.classList.add("legend-floating");
+    }
+  }
+  placeLegend();
+  mq.addEventListener
+    ? mq.addEventListener("change", placeLegend)
+    : mq.addListener(placeLegend);
 }

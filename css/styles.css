@@ -8,7 +8,7 @@
   --green: rgb(0, 204, 44);
   --yellow: rgb(255, 250, 61);
   --orange: #ff7d18;
-  --neutral: rgb(223, 223, 223);  
+  --neutral: rgb(223, 223, 223);
   --gray: rgba(57, 57, 57, 0.8);
   --background: rgba(25, 25, 25, 0.8);
   --shadow: 0 0 15px rgba(0, 0, 0, 0.2);
@@ -80,6 +80,13 @@ h2:active {
   background: var(--orange-light);
 }
 
+h2#button,
+h2#button:where(#button) {
+  font-size: clamp(0.95rem, 0.85rem + 0.35vw, 1.2rem);
+  line-height: 1.15;
+  padding: clamp(6px, 0.5vw + 4px, 10px) clamp(12px, 1vw + 8px, 16px);
+}
+
 .legend {
   /* margin-top: 5px; */
   padding: 10px 12px;
@@ -87,14 +94,15 @@ h2:active {
   border: var(--border);
   border-radius: var(--radius);
   color: #ffffff;
+  font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
 }
 
 .legend-title {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  font-size: 0.95rem;
   margin-bottom: 8px;
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.15rem);
 }
 
 .legend-list {
@@ -111,7 +119,7 @@ h2:active {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.9rem;
+  font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
 }
 
 .legend-swatch {
@@ -165,6 +173,39 @@ h2:active {
 }
 .legend-swatch.point.neutral {
   background: var(--neutral);
+}
+
+/* Floating legend */
+#legend.legend-floating {
+  position: fixed;
+  left: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0) + 18px);
+  z-index: 640;
+  width: clamp(220px, 28vw, 320px);
+  max-width: 90vw;
+  display: inline-block;
+  pointer-events: auto;
+}
+
+/* When floating, don't force the inner list to 100% width */
+#legend.legend-floating .legend-list {
+  width: auto;
+}
+
+#legend.legend-floating .legend-item {
+  font-size: 0.85rem;
+}
+#legend.legend-floating .legend-title {
+  margin-bottom: 6px;
+}
+
+#legend:not(.legend-floating) {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  width: auto;
+  max-width: none;
+  margin: 12px 0;
 }
 
 #ui-controls {
@@ -366,7 +407,7 @@ h2:active {
 }
 
 .maplibregl-popup {
- max-width: 750px !important;
+  max-width: 750px !important;
 }
 
 .maplibregl-popup-content {
@@ -475,7 +516,7 @@ h2:active {
     left: auto;
   }
 
-    .maplibregl-popup {
+  .maplibregl-popup {
     max-width: min(92vw, 520px) !important;
   }
 }

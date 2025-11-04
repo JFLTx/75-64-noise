@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>I-75/I-64 Noise</title>
     <!-- external libraries -->
     <link
@@ -24,11 +24,41 @@
     <h1>I-75 / I-64 Noise Study - Newtown Pike to Western Split</h1>
     <h2 id="button">Info</h2>
     <div id="map"></div>
-    <!-- <div id="ui-controls">
-    <label for="pitchRange">Pitch</label>
-    <input id="pitchRange" type="range" min="0" max="85" step="1" value="55" />
-    <span id="pitchValue">55°</span>
-  </div> -->
+    <!-- show the legend in the map div, but it will move inside the info modal once screen size is too small  -->
+<div id="legend" class="legend" aria-label="Map legend">
+  <div class="legend-title">Legend</div>
+  <ul class="legend-list">
+    <li class="legend-item">
+      <span class="legend-swatch point green" aria-hidden="true"></span>
+      <span>Impacted, Benefited Receptor</span>
+    </li>
+    <li class="legend-item">
+      <span class="legend-swatch point yellow" aria-hidden="true"></span>
+      <span>Not Impacted, Benefited Receptor</span>
+    </li>
+    <li class="legend-item">
+      <span class="legend-swatch point red" aria-hidden="true"></span>
+      <span>Impacted, Not Benefited Receptor</span>
+    </li>
+    <li class="legend-item">
+      <span class="legend-swatch point neutral" aria-hidden="true"></span>
+      <span>Not Impacted, Not Benefited</span>
+    </li>
+    <li class="legend-item">
+      <span class="legend-swatch poly" aria-hidden="true"></span>
+      <span>Noise Study Area</span>
+    </li>
+    <li class="legend-item">
+      <span class="legend-swatch line" aria-hidden="true"></span>
+      <span>Existing ROW</span>
+    </li>
+    <li class="legend-item">
+      <span class="legend-swatch barrier" aria-hidden="true"></span>
+      <span>Proposed Noise Barrier</span>
+    </li>
+  </ul>
+</div>
+
 
     <div id="modal">
       <div class="container">
@@ -40,46 +70,8 @@
           Newtown Pike and the Western Split using TNM 2.5. Data was prepared
           within ArcGIS Pro for use in this analysis.
         </p>
-
-        <div class="legend">
-          <div class="legend-title">Legend</div>
-          <ul class="legend-list">
-            <li class="legend-item">
-              <span class="legend-swatch point green" aria-hidden="true"></span>
-              <span>Impacted, Benefited Receptor</span>
-            </li>
-            <li class="legend-item">
-              <span
-                class="legend-swatch point yellow"
-                aria-hidden="true"
-              ></span>
-              <span>Not Impacted, Benefited Receptor</span>
-            </li>
-            <li class="legend-item">
-              <span class="legend-swatch point red" aria-hidden="true"></span>
-              <span>Impacted, Not Benefited Receptor</span>
-            </li>
-            <li class="legend-item">
-              <span
-                class="legend-swatch point neutral"
-                aria-hidden="true"
-              ></span>
-              <span>Not Impacted, Not Benefited</span>
-            </li>
-            <li class="legend-item">
-              <span class="legend-swatch poly" aria-hidden="true"></span>
-              <span>Noise Study Area</span>
-            </li>
-            <li class="legend-item">
-              <span class="legend-swatch line" aria-hidden="true"></span>
-              <span>Existing ROW</span>
-            </li>
-            <li class="legend-item">
-              <span class="legend-swatch barrier" aria-hidden="true"></span>
-              <span>Proposed Noise Barrier</span>
-            </li>
-          </ul>
-        </div>
+        <!-- dock the legend once the screen size is too small  -->
+        <div id="legend-dock"></div>
 
         <p>
           Receptors were grouped based on location. If a receptor occurs within
