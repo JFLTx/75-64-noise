@@ -403,6 +403,7 @@ function addGeoJsonLayersFor(l, sourceId) {
       {
         id: "barrier3D-extrusion",
         type: "fill-extrusion",
+        filter: ["!=", ["get", "OBJECTID"], 20],
         source: sourceId,
         paint: {
           "fill-extrusion-color": l.styles.color || "#00ffff",
@@ -427,6 +428,7 @@ function addGeoJsonLayersFor(l, sourceId) {
       {
         id: "barrier3D-labels",
         type: "symbol",
+        filter: ["!=", ["get", "OBJECTID"], 20],
         source: sourceId,
         minzoom: 15,
         layout: {
