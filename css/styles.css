@@ -53,6 +53,7 @@ h1 {
   top: 0;
   bottom: 0;
   background-color: var(--gray);
+  inset: 0;
 }
 
 h2 {
@@ -175,37 +176,62 @@ h2#button:where(#button) {
   background: var(--neutral);
 }
 
-/* Floating legend */
-#legend.legend-floating {
-  position: fixed;
-  left: 12px;
-  bottom: calc(env(safe-area-inset-bottom, 0) + 18px);
-  z-index: 640;
-  width: clamp(220px, 28vw, 320px);
-  max-width: 90vw;
-  display: inline-block;
-  pointer-events: auto;
+/* Neutralize old per-element fixed positioning when we stack them */
+#legend.legend-floating,
+#cbr-stats.stats-floating {
+  position: static !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  display: block !important;
 }
 
-/* When floating, don't force the inner list to 100% width */
-#legend.legend-floating .legend-list {
-  width: auto;
-}
-
-#legend.legend-floating .legend-item {
-  font-size: 0.85rem;
-}
-#legend.legend-floating .legend-title {
-  margin-bottom: 6px;
-}
-
-#legend:not(.legend-floating) {
+/* When not floating (in modal dock), same as before */
+#legend:not(.legend-floating),
+#cbr-stats:not(.stats-floating) {
   position: relative;
   left: auto;
   bottom: auto;
   width: auto;
   max-width: none;
   margin: 12px 0;
+}
+
+/* Floating dock that stacks legend + stats vertically */
+#legend-stack {
+  position: absolute;
+  left: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0) + 18px);
+  z-index: 1000;
+  width: clamp(220px, 28vw, 320px);
+  max-width: 90vw;
+  pointer-events: auto;
+}
+
+/* When stacked in the dock, both are normal flow blocks (no fixed here) */
+#legend-stack .legend,
+#legend-stack .stats-card {
+  position: static;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 10px 0;
+}
+#legend-stack .legend:last-child,
+#legend-stack .stats-card:last-child {
+  margin-bottom: 0;
+}
+
+#legend.legend-floating,
+#cbr-stats.stats-floating {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  display: block !important;
 }
 
 #ui-controls {
@@ -481,6 +507,85 @@ h2#button:where(#button) {
 /* Hover scale for divIcon markers */
 .leaflet-marker-icon.hovered {
   transform: scale(3);
+}
+
+/* ==== Cost/Benefit panel ==== */
+.stats-card {
+  padding: 10px 12px;
+  background: var(--background);
+  border: var(--border);
+  border-radius: var(--radius);
+  color: #ffffff;
+  font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
+  box-shadow: var(--shadow);
+}
+
+.stats-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.15rem);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.stats-key {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.stats-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-value.badge {
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+.stats-value.badge.ok {
+  background: var(--green);
+  color: var(--dark);
+}
+
+.stats-value.badge.warn {
+  background: var(--red);
+  color: var(--dark);
+}
+
+/* Floating stats when legend is floating */
+#cbr-stats.stats-floating {
+  position: fixed;
+  left: 12px;
+  z-index: 640;
+  width: clamp(220px, 28vw, 320px);
+  max-width: 90vw;
+  display: inline-block;
+  pointer-events: auto;
+  /* nudge above the legend a bit */
+  bottom: calc(env(safe-area-inset-bottom, 0) + 18px + 12px + 160px);
+}
+
+#legend.legend-floating + #cbr-stats.stats-floating {
+  /* when placed right after the legend, stack just above/below cleanly */
+  bottom: calc(env(safe-area-inset-bottom, 0) + 18px + 12px + 0px);
+}
+
+/* When not floating (docked in modal), allow full width flow */
+#cbr-stats:not(.stats-floating) {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  width: auto;
+  max-width: none;
+  margin: 12px 0;
 }
 
 /* Small devices (portrait phones, 576px and below) */
