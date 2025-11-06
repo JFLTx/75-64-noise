@@ -1,5 +1,16 @@
 let receptorsLayer;
 let impactMode = "Existing Noise Impact";
+let receptorsFC = null;
+let barriersFC = null;
+
+function fmtCurrency(n) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
 
 function yn(value) {
   if (value == null) return "NO";
@@ -92,7 +103,7 @@ const data = {
       raw: false,
     },
     receptors: {
-      geojson: "data/receptors-updated.geojson",
+      geojson: "data/receptors-I64-barResults-US25drop.geojson",
       styles: {
         radius: 5,
         fillColor: "#e31a1c",
@@ -107,7 +118,7 @@ const data = {
       raw: false,
     },
     barriers: {
-      geojson: "data/proposed-split-barrier-updated.geojson",
+      geojson: "data/proposed-split-barrier-us25-drop.geojson",
       styles: {
         color: "#00FFFF",
         opacity: 1,
@@ -139,6 +150,9 @@ buttonUI();
 const map = createBaseMap();
 addSources();
 responsiveLegend();
+createStatsPanel();
+createLegendStackDock();
+placePanels(); 
 
 // =========================
 //  MapLibre base map
@@ -250,6 +264,14 @@ function addSources() {
         const jsonData = await response.json();
         const geojson = l.raw ? createGeoJson(jsonData) : jsonData;
 
+        // Cache FCs for stats after normalization
+        if (l === data.sources.receptors) {
+          receptorsFC = geojson;
+        }
+        if (l === data.sources.barriers) {
+          barriersFC = geojson;
+        }
+
         // Assign feature ids and (for receptors) compute class & filter
         prepareFeatures(geojson, l);
 
@@ -278,6 +300,7 @@ function addSources() {
       intensity: 0.6,
       position: [1.5, 150, 80], // [radial, azimuthal, polar] in degrees
     });
+    updateStatsPanel(); // compute totals once both layers are in
   });
 }
 
@@ -304,6 +327,8 @@ function prepareFeatures(fc, l) {
 
     // receptor-only derived props & filter
     if (l === data.sources.receptors) {
+      // normalize receptor names based on receptors field map
+      normalizeReceptorProps(f.properties);
       // Filter measurement sites
       if (yn(f.properties?.MeasurementSite) === "YES") return false;
 
@@ -623,13 +648,16 @@ function buildPopup(properties) {
     "cls",
   ];
 
+  const exclude = new Set(baseExclude);
   const norm = (s) => String(s).normalize("NFKC").replace(/\s+/g, " ").trim();
   const isImpactKey = (k) => /\bimpact\b/i.test(norm(k));
   const isBenefitedKey = (k) => /\bbenefit/i.test(norm(k));
 
-  const exclude = new Set(baseExclude);
+  // keys to force to the bottom (in this order)
+  const tailOrder = ["Reduction", "Benefited"];
 
-  let html = "<div class='popup-content'>";
+  let rowsMain = [];
+  let rowsTail = [];
 
   for (const rawKey in properties) {
     if (!Object.prototype.hasOwnProperty.call(properties, rawKey)) continue;
@@ -650,21 +678,32 @@ function buildPopup(properties) {
     if (isImpactKey(key)) {
       const ynVal = yn(rawVal);
       vClass = ynVal === "YES" ? "red" : ynVal === "NO" ? "green" : "";
-    } else if (isBenefitedKey(key)) {
+    } else if (isBenefitedKey(key) || key === "Benefited") {
       const ynVal = yn(rawVal);
       vClass = ynVal === "YES" ? "green" : "red";
     }
 
-    html += `
+    const row = `
       <div class="kv-row">
         <span class="key">${key}:</span>
         <span class="dots" aria-hidden="true"></span>
         <span class="value ${vClass}">${value}</span>
       </div>`;
+
+    // send Reduction/Benefited to the tail
+    if (tailOrder.includes(key)) {
+      rowsTail.push({ key, row });
+    } else {
+      rowsMain.push(row);
+    }
   }
 
-  html += "</div>";
-  return html;
+  // Sort the tail to honor the desired order (Reduction first, then Benefited)
+  rowsTail.sort((a, b) => tailOrder.indexOf(a.key) - tailOrder.indexOf(b.key));
+
+  return `<div class="popup-content">${rowsMain.join("")}${rowsTail
+    .map((x) => x.row)
+    .join("")}</div>`;
 }
 
 function buildBarrierPopup(p) {
@@ -780,6 +819,122 @@ function getGeoJSONBounds(fc) {
   ];
 }
 
+// Canonical field names you WANT  ->  possible incoming names
+const receptorFieldMap = {
+  "Receptor Height (ft)": [
+    "ReceiverHeight",
+    "Receiver Height",
+    "Receiver_Height",
+  ],
+  "Receptor Group": ["ReceiverGroup", "Receiver Group"],
+  "NAC Category": ["NAC_Category", "NAC-Category"],
+  "Activity Criteria": ["Activity_Criteria", "Activity-criteria", "Criteria"],
+  "NAC / Activity Criteria": ["nacCat_ActCrit", "NAC_ActCrit", "NAC-Activity"],
+  "Land Use Description": ["LandUse", "Land Use", "Land_Use"],
+  "Design Goal": ["Design_Goal", "DesignGoal"],
+  "Num. Dwelling Units": ["No_DU", "Num_DU", "DwellingUnits"],
+  "Front Row": ["FrontRow", "Front_Row"],
+  "Apartment Floor Analyzed": [
+    "Apartment Floot Analyzed",
+    "Apt_Floor_Analyzed",
+    "ApartmentFloor",
+  ],
+
+  "Substantial Noise Increase": ["Substantial_Noise_Increase"],
+  "Existing Noise": ["ExistingNoise", "Existing_Noise"],
+  "Existing Noise Impact": ["ExistingImpact", "Existing_Impact"],
+  "Future Noise No Build": [
+    "Future-NoBuild",
+    "Future_NoBuild",
+    "FutureNoBuild",
+  ],
+  "Future Noise No Build Impact": [
+    "Future_noBuild_Impact",
+    "Future NoBuild Impact",
+    "Future_NoBuild_Impact",
+  ],
+  "Future Noise Design Build": [
+    "Future-Build",
+    "Future_Build",
+    "FutureDesignBuild",
+  ],
+  "Future Noise Design Build Impact": [
+    "Future_Build_Impact",
+    "Future Build Impact",
+    "FutureBuildImpact",
+  ],
+  "Future Noise with Barrier": [
+    "WithBarrier_Final",
+    "Future_With_Barrier",
+    "Barrier_Final",
+  ],
+  Benefited: ["Benefitted", "benefitted", "benefited"],
+  Reduction: ["reduction", "reduc", "reduction_Final", "Reduction_Final"],
+  // naming that already matches but sometimes varies:
+  MeasurementSite: ["Measurement Site"],
+  Name: ["ReceiverName"], // prefer "Name" for labels; fall back from ReceiverName
+};
+
+// Moves values from any known source key to the canonical key.
+// If the canonical already exists, leaves it alone. Removes the old keys to avoid duplicates.
+function normalizeReceptorProps(props) {
+  if (!props) return props;
+
+  // Coalesce Name from ReceiverName if needed (before generic pass)
+  if (props.Name == null && props.ReceiverName != null) {
+    props.Name = props.ReceiverName;
+  }
+
+  // Generic canonicalization pass
+  for (const [canonical, candidates] of Object.entries(receptorFieldMap)) {
+    if (props[canonical] != null) continue;
+    for (const key of candidates) {
+      if (key in props && props[key] != null) {
+        props[canonical] = props[key];
+        delete props[key];
+        break;
+      }
+    }
+  }
+
+  // 3) Light cleanup / numeric coercion for known numeric fields
+  const numericKeys = new Set([
+    "Receptor Height (ft)",
+    "Design Goal",
+    "Num. Dwelling Units",
+    "X",
+    "Y",
+    "Z",
+    "Existing Noise",
+    "Future Noise No Build",
+    "Future Noise Design Build",
+    "Future Noise with Barrier",
+    "Reduction",
+  ]);
+  for (const k of numericKeys) {
+    if (k in props && props[k] != null && props[k] !== "") {
+      const n = Number(props[k]);
+      if (Number.isFinite(n)) props[k] = n;
+    }
+  }
+
+  // 4) Normalize YES/NO-ish fields to strings your popup logic expects
+  const ynKeys = [
+    "Existing Noise Impact",
+    "Future Noise No Build Impact",
+    "Future Noise Design Build Impact",
+    "Substantial Noise Increase",
+    "Benefited",
+    "Front Row",
+    "MeasurementSite",
+  ];
+  for (const k of ynKeys) {
+    if (k in props) props[k] = yn(props[k]); // uses your existing yn()
+  }
+
+  return props;
+}
+
 // =========================
 // DOM utils
 // =========================
@@ -804,27 +959,149 @@ function setLayout() {
   window.addEventListener("resize", buttonUI);
 }
 
-function responsiveLegend() {
-  const legend = document.getElementById("legend");
-  const dock = document.getElementById("legend-dock");
-  const mq = window.matchMedia("(max-width: 576px)");
+function updateStatsPanel() {
+  const stats = document.getElementById("cbr-stats");
+  if (!stats) return;
 
-  function placeLegend() {
-    if (!legend || !dock) return;
-    if (mq.matches) {
-      // Mobile: put legend inside modal
-      dock.appendChild(legend);
-      legend.classList.remove("legend-floating");
-    } else {
-      // Desktop/tablet: float over map (bottom-left)
-      // Either of these is fine:
-      document.body.appendChild(legend); // pinned to viewport
-      // or: document.getElementById("map").after(legend);
-      legend.classList.add("legend-floating");
+  const { totalCost, benefitedDU } = calculateTotals();
+  const cbr = benefitedDU > 0 ? totalCost / benefitedDU : NaN;
+
+  const costEl = stats.querySelector('[data-k="cost"]');
+  const duEl = stats.querySelector('[data-k="du"]');
+  const cbrEl = stats.querySelector('[data-k="cbr"]');
+
+  costEl.textContent = fmtCurrency(totalCost);
+  duEl.textContent = Number.isFinite(benefitedDU)
+    ? benefitedDU.toLocaleString()
+    : "—";
+
+  // badge coloring by KYTC reasonableness threshold ($40,000 / DU)
+  cbrEl.textContent = Number.isFinite(cbr) ? fmtCurrency(cbr) : "—";
+  cbrEl.classList.remove("ok", "warn");
+  if (Number.isFinite(cbr)) {
+    cbrEl.classList.add(cbr <= 40000 ? "ok" : "warn");
+    cbrEl.classList.add("badge");
+  } else {
+    cbrEl.classList.remove("badge");
+  }
+}
+
+function calculateTotals() {
+  let totalCost = 0;
+  let benefitedDU = 0;
+
+  // ==== barriers total cost ====
+  if (barriersFC?.features?.length) {
+    for (const f of barriersFC.features) {
+      const p = f.properties || {};
+      let segCost = toNum(p.Cost);
+
+      // fallback: compute cost = length(ft) * height(ft) * $32/ft²
+      if (!Number.isFinite(segCost)) {
+        const heightFt = toNum(p["Barrier Segment Height (ft)"]);
+        const lenFt =
+          toNum(p["Segment Length (ft)"]) ??
+          toNum(p["Length_ft"]) ??
+          toNum(p["Length (ft)"]) ??
+          toNum(p["Length"]) ??
+          null;
+
+        if (Number.isFinite(heightFt) && Number.isFinite(lenFt)) {
+          segCost = lenFt * heightFt * 32;
+        }
+      }
+
+      if (Number.isFinite(segCost)) totalCost += segCost;
     }
   }
-  placeLegend();
+
+  // ==== benefited DU sum ====
+  if (receptorsFC?.features?.length) {
+    for (const f of receptorsFC.features) {
+      const p = f.properties || {};
+      // We normalized Benefited to YES/NO earlier; if not, coerce here
+      const benef = "Benefited" in p ? yn(p.Benefited) : getBenefited(p);
+      if (benef === "YES") {
+        const du = toNum(p["Num. Dwelling Units"]);
+        benefitedDU += Number.isFinite(du) ? du : 1; // default to 1 if missing
+      }
+    }
+  }
+
+  return { totalCost, benefitedDU };
+}
+
+function responsiveLegend() {
+  const mq = window.matchMedia("(max-width: 576px)");
+  function onChange() {
+    placePanels();
+  }
+  onChange();
   mq.addEventListener
-    ? mq.addEventListener("change", placeLegend)
-    : mq.addListener(placeLegend);
+    ? mq.addEventListener("change", onChange)
+    : mq.addListener(onChange);
+}
+
+function createStatsPanel() {
+  // if it already exists, bail
+  if (document.getElementById("cbr-stats")) return;
+
+  const el = document.createElement("div");
+  el.id = "cbr-stats";
+  el.className = "stats-card";
+  el.setAttribute("aria-live", "polite");
+  el.innerHTML = `
+    <div class="stats-title">Cost / Benefit</div>
+    <div class="stats-grid">
+      <div class="stats-key">Total Barrier Cost</div>
+      <div class="stats-value" data-k="cost">—</div>
+
+      <div class="stats-key">Benefited Dwelling Units</div>
+      <div class="stats-value" data-k="du">—</div>
+
+      <div class="stats-key">Cost per Benefited DU</div>
+      <div class="stats-value badge" data-k="cbr">—</div>
+    </div>
+  `;
+  // place it next to the legend initially
+  const legend = document.getElementById("legend");
+  if (legend && legend.parentNode) {
+    legend.parentNode.insertBefore(el, legend.nextSibling); // after legend
+  } else {
+    document.body.appendChild(el);
+  }
+  placePanels(); // ensure correct docking on load
+}
+
+function createLegendStackDock() {
+  if (!document.getElementById("legend-stack")) {
+    const dock = document.createElement("div");
+    dock.id = "legend-stack";
+    const mapEl = document.getElementById("map");
+    (mapEl || document.body).appendChild(dock); // prefer inside #map
+  }
+}
+
+function placePanels() {
+  const legend = document.getElementById("legend");
+  const stats  = document.getElementById("cbr-stats");
+  const dock   = document.getElementById("legend-dock");   // modal dock
+  const stack  = document.getElementById("legend-stack");  // floating dock
+  const mq     = window.matchMedia("(max-width: 576px)");
+
+  if (!legend || !stats) return;
+
+  if (mq.matches && dock) {
+    dock.appendChild(legend);
+    dock.appendChild(stats);
+    legend.classList.remove("legend-floating");
+    stats.classList.remove("stats-floating");
+  } else {
+    // desktop/tablet --> stack both inside the map's dock (bottom-left)
+    const host = stack || document.getElementById("map") || document.body;
+    host.appendChild(legend);
+    host.appendChild(stats);
+    legend.classList.add("legend-floating");
+    stats.classList.add("stats-floating");
+  }
 }
