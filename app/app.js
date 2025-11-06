@@ -264,6 +264,8 @@ function addSources() {
         const jsonData = await response.json();
         const geojson = l.raw ? createGeoJson(jsonData) : jsonData;
 
+        prepareFeatures(geojson, l);
+
         // Cache FCs for stats after normalization
         if (l === data.sources.receptors) {
           receptorsFC = geojson;
@@ -271,9 +273,6 @@ function addSources() {
         if (l === data.sources.barriers) {
           barriersFC = geojson;
         }
-
-        // Assign feature ids and (for receptors) compute class & filter
-        prepareFeatures(geojson, l);
 
         const sourceId = getSourceId(l);
         map.addSource(sourceId, {
@@ -320,24 +319,25 @@ function prepareFeatures(fc, l) {
 
   let i = 1;
   fc.features = (fc.features || []).filter((f) => {
+    // 🔒 drop barrier OBJECTID == 20
+    if (l === data.sources.barriers && Number(f?.properties?.OBJECTID) === 20) {
+      return false;
+    }
+
     f.properties = f.properties || {};
     f.properties.fid = f.properties.fid ?? i;
     f.id = f.properties.fid;
     i++;
 
-    // receptor-only derived props & filter
     if (l === data.sources.receptors) {
-      // normalize receptor names based on receptors field map
       normalizeReceptorProps(f.properties);
-      // Filter measurement sites
       if (yn(f.properties?.MeasurementSite) === "YES") return false;
-
-      // compute receptor class (red/green/yellow/neutral)
       f.properties.cls = classifyReceptor(f.properties);
     }
     return true;
   });
 }
+
 
 function addGeoJsonLayersFor(l, sourceId) {
   if (l === data.sources.noiseBuffer) {
