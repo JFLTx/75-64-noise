@@ -152,7 +152,7 @@ addSources();
 responsiveLegend();
 createStatsPanel();
 createLegendStackDock();
-placePanels(); 
+placePanels();
 
 // =========================
 //  MapLibre base map
@@ -337,7 +337,6 @@ function prepareFeatures(fc, l) {
     return true;
   });
 }
-
 
 function addGeoJsonLayersFor(l, sourceId) {
   if (l === data.sources.noiseBuffer) {
@@ -996,41 +995,40 @@ function calculateTotals() {
   if (barriersFC?.features?.length) {
     for (const f of barriersFC.features) {
       const p = f.properties || {};
-      let segCost = toNum(p.Cost);
 
-      // fallback: compute cost = length(ft) * height(ft) * $32/ft²
+      // 🚫 skip excluded IDs
+      if (Number(p.OBJECTID) === 20) continue;
+
+      let segCost = toNum(p.Cost);
       if (!Number.isFinite(segCost)) {
         const heightFt = toNum(p["Barrier Segment Height (ft)"]);
         const lenFt =
           toNum(p["Segment Length (ft)"]) ??
           toNum(p["Length_ft"]) ??
           toNum(p["Length (ft)"]) ??
-          toNum(p["Length"]) ??
-          null;
-
+          toNum(p["Length"]);
         if (Number.isFinite(heightFt) && Number.isFinite(lenFt)) {
           segCost = lenFt * heightFt * 32;
         }
       }
-
       if (Number.isFinite(segCost)) totalCost += segCost;
     }
-  }
 
-  // ==== benefited DU sum ====
-  if (receptorsFC?.features?.length) {
-    for (const f of receptorsFC.features) {
-      const p = f.properties || {};
-      // We normalized Benefited to YES/NO earlier; if not, coerce here
-      const benef = "Benefited" in p ? yn(p.Benefited) : getBenefited(p);
-      if (benef === "YES") {
-        const du = toNum(p["Num. Dwelling Units"]);
-        benefitedDU += Number.isFinite(du) ? du : 1; // default to 1 if missing
+    // ==== benefited DU sum ====
+    if (receptorsFC?.features?.length) {
+      for (const f of receptorsFC.features) {
+        const p = f.properties || {};
+        // We normalized Benefited to YES/NO earlier; if not, coerce here
+        const benef = "Benefited" in p ? yn(p.Benefited) : getBenefited(p);
+        if (benef === "YES") {
+          const du = toNum(p["Num. Dwelling Units"]);
+          benefitedDU += Number.isFinite(du) ? du : 1; // default to 1 if missing
+        }
       }
     }
-  }
 
-  return { totalCost, benefitedDU };
+    return { totalCost, benefitedDU };
+  }
 }
 
 function responsiveLegend() {
@@ -1086,10 +1084,10 @@ function createLegendStackDock() {
 
 function placePanels() {
   const legend = document.getElementById("legend");
-  const stats  = document.getElementById("cbr-stats");
-  const dock   = document.getElementById("legend-dock");   // modal dock
-  const stack  = document.getElementById("legend-stack");  // floating dock
-  const mq     = window.matchMedia("(max-width: 576px)");
+  const stats = document.getElementById("cbr-stats");
+  const dock = document.getElementById("legend-dock"); // modal dock
+  const stack = document.getElementById("legend-stack"); // floating dock
+  const mq = window.matchMedia("(max-width: 576px)");
 
   if (!legend || !stats) return;
 

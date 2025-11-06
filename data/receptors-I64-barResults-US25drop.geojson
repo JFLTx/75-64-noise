@@ -6293,11 +6293,11 @@
         "ExistingImpact": "YES",
         "Future-NoBuild": 68.799999999999997,
         "Future_noBuild_Impact": "YES",
-        "Future-Build": 72,
+        "Future-Build": 72.0,
         "Future_Build_Impact": "YES",
         "Substantial_Noise_Increase": "NO",
-        "WithBarrier_Final": 66.400000000000006,
-        "Reduction": 5.5999999999999943,
+        "WithBarrier_Final": 66.7,
+        "Reduction": 5.3,
         "Benefited": "YES"
       }
     },
@@ -6332,8 +6332,8 @@
         "Future-Build": 70.200000000000003,
         "Future_Build_Impact": "YES",
         "Substantial_Noise_Increase": "NO",
-        "WithBarrier_Final": 64.900000000000006,
-        "Reduction": 5.2999999999999972,
+        "WithBarrier_Final": 65.1,
+        "Reduction": 5.1,
         "Benefited": "YES"
       }
     },
@@ -6368,8 +6368,8 @@
         "Future-Build": 64.900000000000006,
         "Future_Build_Impact": "NO",
         "Substantial_Noise_Increase": "NO",
-        "WithBarrier_Final": 59,
-        "Reduction": 5.9000000000000057,
+        "WithBarrier_Final": 59.2,
+        "Reduction": 5.7,
         "Benefited": "YES"
       }
     },
