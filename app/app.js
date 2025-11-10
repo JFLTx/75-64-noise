@@ -427,7 +427,16 @@ function addGeoJsonLayersFor(l, sourceId) {
       {
         id: "barrier3D-labels",
         type: "symbol",
-        filter: ["!=", ["get", "OBJECTID"], 20],
+        filter: [
+          "!",
+          [
+            "match",
+            ["get", "OBJECTID"],
+            [13, 5, 12, 7, 8, 9, 11, 20], // OBJECTIDs to skip
+            true, // if OBJECTID is in the list → match = true, do not label!
+            false, // otherwise → match = false, label!
+          ],
+        ],
         source: sourceId,
         minzoom: 15,
         layout: {
