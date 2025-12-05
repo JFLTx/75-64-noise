@@ -62,7 +62,7 @@ const data = {
         },
       },
     },
-    // Leaflet panes
+    // panes
     panes: ["ROW", "studyArea", "receptors", "barrier", "top"],
   },
   sources: {
