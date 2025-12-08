@@ -1,582 +1,48 @@
-let receptorsLayer;
+// app.js – attaches to the StoryMap's existing `map`
+
+let receptorsLayer = "receptors-circles";
 let impactMode = "Existing Noise Impact";
 
+// -------------------------
+// Helper functions (keep these)
+// -------------------------
 function yn(value) {
   if (value == null) return "NO";
   const s = String(value).trim().toUpperCase();
   return s === "Y" || s === "YES" || s === "TRUE" || s === "1" ? "YES" : "NO";
 }
 
-const data = {
-  layout: {
-    title: "h1",
-    modal: "#modal",
-    button: "#button",
-  },
-  map: {
-    options: {
-      center: [42, -100],
-      zoom: 1,
-      maxZoom: 22,
-      zoomSnap: 0.25,
-      zoomDelta: 0.25,
-      zoomControl: false,
-    },
-    tiles: {
-      base: {
-        url: [
-          "https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
-          "https://cartodb-basemaps-b.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
-          "https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
-        ],
-        options: {
-          attribution:
-            'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          opacity: 1,
-          maxNativeZoom: 19,
-          maxZoom: 22,
-        },
-      },
-      labels: {
-        url: [
-          "https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
-          "https://cartodb-basemaps-b.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
-          "https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
-        ],
-        options: {
-          attribution:
-            'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          maxNativeZoom: 19,
-          maxZoom: 22,
-        },
-      },
-    },
-    // Leaflet panes
-    panes: ["ROW", "studyArea", "receptors", "barrier", "top"],
-  },
-  sources: {
-    existingRow: {
-      geojson: "data/existing-row.geojson",
-      styles: {
-        color: "#ffd900ff",
-        weight: 2,
-        opacity: 0.9,
-      },
-      pane: "ROW",
-      fields: [],
-      interactive: false,
-      raw: false,
-    },
-    buildingFootprints: {
-      geojson: "data/building-footprints.geojson",
-      styles: {
-        color: "#d4fdfdff",
-        opacity: 0.9,
-      },
-      pane: "studyArea",
-      fields: ["H"], // height (ft)
-      interactive: true,
-      raw: false,
-    },
-    noiseBuffer: {
-      geojson: "data/noise-buffer.geojson",
-      styles: {
-        color: "#ffffffff",
-        weight: 3,
-        fillOpacity: 0.2,
-        fillColor: "#e3dfa6ff",
-      },
-      pane: "studyArea",
-      fields: [],
-      interactive: false,
-      raw: false,
-    },
-    receptors: {
-      geojson: "data/receptors.geojson",
-      styles: {
-        radius: 5,
-        fillColor: "#e31a1c",
-        color: "#000",
-        weight: 0.5,
-        opacity: 1,
-        fillOpacity: 0.9,
-      },
-      pane: "receptors",
-      fields: ["ReceiverName"],
-      interactive: true,
-      raw: false,
-    },
-    barriers: {
-      geojson: "data/proposed-barrier-polygon.geojson",
-      styles: {
-        color: "#00FFFF",
-        opacity: 1,
-      },
-      pane: "barrier",
-      fields: ["Name", "Barrier Segment Height (ft)"],
-      interactive: true,
-      raw: false,
-    },
-  },
-  popupOptions: {
-    className: "ml-tooltip-own",
-  },
-  interactive: {
-    color: "cyan",
-    weight: 5,
-  },
-  error: {
-    process: "Error processing data",
-    overlay: "Error loading overlay",
-  },
-};
-
-// =========================
-//  Kickoff
-// =========================
-setLayout();
-buttonUI();
-const map = createBaseMap();
-addSources();
-
-// =========================
-//  MapLibre base map
-// =========================
-function createBaseMap() {
-  const lat = data.map.options.center[0];
-  const lng = data.map.options.center[1];
-
-  const m = new maplibregl.Map({
-    container: "map",
-    style: {
-      version: 8,
-      sources: {},
-      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
-      layers: [],
-    },
-    center: [lng, lat],
-    zoom: data.map.options.zoom,
-    maxZoom: data.map.options.maxZoom,
-    attributionControl: false,
-    antialias: true,
-    maxPitch: 85,
-  });
-
-  m.addControl(new maplibregl.AttributionControl({ compact: true }));
-
-  m.addControl(
-    new maplibregl.NavigationControl({
-      showCompass: true,
-      showZoom: true,
-    }),
-    "top-right"
-  );
-
-  m.on("load", () => {
-    m.setPitch(55);
-    m.setBearing(20);
-    m.dragRotate.enable();
-    m.touchZoomRotate.enableRotation();
-    // Base (raster)
-    // m.addSource("base-tiles", {
-    //   type: "raster",
-    //   tiles: data.map.tiles.base.url,
-    //   tileSize: 256,
-    //   maxzoom: data.map.tiles.base.options.maxNativeZoom ?? 19,
-    //   attribution: data.map.tiles.base.options.attribution,
-    // });
-    // m.addLayer({
-    //   id: "base-tiles",
-    //   type: "raster",
-    //   source: "base-tiles",
-    //   paint: { "raster-opacity": data.map.tiles.base.options.opacity ?? 1 },
-    // });
-
-    m.addLayer({
-      id: "background",
-      type: "background",
-      paint: {
-        "background-color": "rgba(195, 175, 165, 1)",
-        "background-opacity": 1,
-      },
-    });
-
-    m.addSource("aerial", {
-      type: "raster",
-      tiles: [
-        "https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/Ky_Imagery_Phase3_3IN_WGS84WM/MapServer/tile/{z}/{y}/{x}",
-      ],
-      tileSize: 256,
-      maxzoom: 21,
-      attribution:
-        'Imagery © <a href="https://kygisserver.ky.gov">KyFromAbove</a>',
-    });
-    m.addLayer({
-      id: "aerial",
-      type: "raster",
-      source: "aerial",
-      layout: { visibility: "visible" },
-      paint: {
-        "raster-brightness-min": 0.2,
-        "raster-saturation": 0.5,
-        "raster-hue-rotate": 20,
-        "raster-opacity": 1,
-      },
-    });
-
-    // Labels (raster) —
-    m.addSource("label-tiles", {
-      type: "raster",
-      tiles: data.map.tiles.labels.url,
-      tileSize: 256,
-      maxzoom: data.map.tiles.labels.options.maxNativeZoom ?? 19,
-      attribution: data.map.tiles.labels.options.attribution,
-    });
-    m.addLayer({
-      id: "label-tiles",
-      type: "raster",
-      source: "label-tiles",
-      paint: { "raster-opacity": 1 },
-    });
-  });
-
-  return m;
+function toNum(v) {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (v == null) return null;
+  const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : null;
 }
 
-// =========================
-//  Add data sources/layers
-// =========================
-function addSources() {
-  const src = data.sources;
-  const layersToPlace = [
-    src.existingRow,
-    src.buildingFootprints,
-    src.noiseBuffer,
-    src.receptors,
-    src.barriers,
-  ];
-
-  map.on("load", async () => {
-    for (const l of layersToPlace) {
-      try {
-        const response = await fetch(l.geojson);
-        const jsonData = await response.json();
-        const geojson = l.raw ? createGeoJson(jsonData) : jsonData;
-
-        // Assign feature ids and (for receptors) compute class & filter
-        prepareFeatures(geojson, l);
-
-        const sourceId = getSourceId(l);
-        map.addSource(sourceId, {
-          type: "geojson",
-          data: geojson,
-          promoteId: "fid", // use our assigned numeric id for feature-state
-        });
-
-        // Add layers per geometry
-        addGeoJsonLayersFor(l, sourceId);
-
-        // Zoom to receptors after they load
-        if (l === data.sources.receptors) {
-          const b = getGeoJSONBounds(geojson);
-          if (b) map.fitBounds(b, { padding: 20 });
-        }
-      } catch (err) {
-        console.error(data.error.process, err);
-      }
-    }
-    map.setLight({
-      anchor: "viewport",
-      color: "white",
-      intensity: 0.6,
-      position: [1.5, 150, 80], // [radial, azimuthal, polar] in degrees
-    });
-  });
+function getImpact(props) {
+  return yn(props["Future Noise Design Build Impact"]);
 }
 
-// Create a stable source id for each config block
-function getSourceId(l) {
-  if (l === data.sources.existingRow) return "existingRow-src";
-  if (l === data.sources.buildingFootprints) return "buildingFootprints-src";
-  if (l === data.sources.noiseBuffer) return "noiseBuffer-src";
-  if (l === data.sources.receptors) return "receptors-src";
-  if (l === data.sources.barriers) return "barriers-src";
-  return `src-${Math.random().toString(36).slice(2)}`;
+function getBenefited(props) {
+  if ("Benefited" in props) return yn(props.Benefited);
+
+  const future = toNum(props["Future Noise Design Build"]);
+  const barrier = toNum(props["Barrier Design 10ft ALL"]);
+  if (future == null || barrier == null) return "NO";
+  const reduction = Math.round((future - barrier) * 10) / 10;
+  return reduction >= 5 ? "YES" : "NO";
 }
 
-// Ensure features have ids; compute receptor class, filter out measurement sites
-function prepareFeatures(fc, l) {
-  if (!fc || fc.type !== "FeatureCollection") return;
+function classifyReceptor(props) {
+  const impactYes = getImpact(props) === "YES";
+  const benefYes = getBenefited(props) === "YES";
 
-  let i = 1;
-  fc.features = (fc.features || []).filter((f) => {
-    f.properties = f.properties || {};
-    f.properties.fid = f.properties.fid ?? i;
-    f.id = f.properties.fid;
-    i++;
-
-    // receptor-only derived props & filter
-    if (l === data.sources.receptors) {
-      // Filter measurement sites
-      if (yn(f.properties?.MeasurementSite) === "YES") return false;
-
-      // compute receptor class (red/green/yellow/neutral)
-      f.properties.cls = classifyReceptor(f.properties);
-    }
-    return true;
-  });
+  if (impactYes && !benefYes) return "red";
+  if (impactYes && benefYes) return "green";
+  if (!impactYes && benefYes) return "yellow";
+  return "neutral";
 }
 
-function addGeoJsonLayersFor(l, sourceId) {
-  if (l === data.sources.noiseBuffer) {
-    map.addLayer({
-      id: "noiseBuffer-fill",
-      type: "fill",
-      source: sourceId,
-      paint: {
-        "fill-color": l.styles.fillColor || "#ffffffff",
-        "fill-opacity": l.styles.fillOpacity ?? 0.0,
-      },
-    });
-    map.addLayer({
-      id: "noiseBuffer-line",
-      type: "line",
-      source: sourceId,
-      paint: {
-        "line-color": l.styles.color || "#ffffff",
-        "line-width": l.styles.weight ?? 3,
-        "line-opacity": 1,
-      },
-    });
-    return;
-  }
-
-  if (l === data.sources.existingRow) {
-    map.addLayer({
-      id: "existingRow-line",
-      type: "line",
-      source: sourceId,
-      paint: {
-        "line-color": l.styles.color || "#ffd900",
-        "line-width": l.styles.weight ?? 2,
-        "line-opacity": l.styles.opacity ?? 0.9,
-      },
-    });
-    return;
-  }
-
-  if (l === data.sources.buildingFootprints) {
-    // Extruded buildings
-    map.addLayer(
-      {
-        id: "buildings-extrusion",
-        type: "fill-extrusion",
-        source: sourceId,
-        paint: {
-          "fill-extrusion-color": l.styles.color || "#a9b7c9",
-          "fill-extrusion-height": [
-            "*",
-            ["coalesce", ["to-number", ["get", "H"]], 0],
-            0.3048, // feet -> meters
-          ],
-          "fill-extrusion-base": 0,
-          "fill-extrusion-opacity": l.styles.opacity ?? 0.9,
-        },
-      },
-      "label-tiles"
-    );
-  }
-  if (l === data.sources.barriers) {
-    map.addLayer(
-      {
-        id: "barrier3D-extrusion",
-        type: "fill-extrusion",
-        source: sourceId,
-        paint: {
-          "fill-extrusion-color": l.styles.color || "#00ffff",
-          "fill-extrusion-height": [
-            "*",
-            [
-              "coalesce",
-              ["to-number", ["get", "Barrier Segment Height (ft)"]],
-              0,
-            ],
-            0.3048, // feet -> meters
-          ],
-          "fill-extrusion-base": 0,
-          "fill-extrusion-opacity": l.styles.opacity ?? 0.95,
-        },
-      },
-      "label-tiles"
-    );
-
-    // Popup (show segment height)
-    map.on("click", "barrier3D-extrusion", (e) => {
-      const p = e.features?.[0]?.properties || {};
-      const ft = Number(p["Barrier Segment Height (ft)"]);
-      const hText = Number.isFinite(ft) ? `${ft.toFixed(1)} ft` : "—";
-      new maplibregl.Popup({ className: data.popupOptions.className })
-        .setLngLat(e.lngLat)
-        .setHTML(
-          `
-        <div class="popup-content">
-          <div class="kv-row">
-            <span class="key">Barrier Height:</span>
-            <span class="dots" aria-hidden="true"></span>
-            <span class="value">${hText}</span>
-          </div>
-        </div>
-      `
-        )
-        .addTo(map);
-    });
-    map.on(
-      "mouseenter",
-      "barrier3D-extrusion",
-      () => (map.getCanvas().style.cursor = "pointer")
-    );
-    map.on(
-      "mouseleave",
-      "barrier3D-extrusion",
-      () => (map.getCanvas().style.cursor = "")
-    );
-    return;
-  }
-
-  // circle layer with data-driven color + hover scale
-  if (l === data.sources.receptors) {
-    map.addLayer({
-      id: "receptors-circles",
-      type: "circle",
-      source: sourceId,
-      paint: {
-        "circle-radius": [
-          "case",
-          ["boolean", ["feature-state", "hover"], false],
-          8,
-          l.styles.radius ?? 8,
-        ],
-        "circle-color": [
-          "match",
-          ["get", "cls"],
-          "red",
-          "#e61e1e",
-          "green",
-          "#00cc2c",
-          "yellow",
-          "#fffA3d",
-          "neutral",
-          "rgb(223, 223, 223)",
-          l.styles.fillColor || "#e31a1c",
-        ],
-        "circle-stroke-color": l.styles.color || "#000000",
-        "circle-stroke-width": l.styles.weight ?? 0.6,
-        "circle-opacity": l.styles.fillOpacity ?? 0.9,
-      },
-    });
-
-    map.addLayer({
-      id: "receptors-labels",
-      type: "symbol",
-      source: sourceId,
-      minzoom: 14,
-      layout: {
-        "text-field": [
-          "coalesce",
-          ["get", "Name"],
-          ["get", "ReceiverName"],
-          "",
-        ],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 16, 12],
-        "text-anchor": "left", 
-        "text-offset": [0.9, 0], 
-        "text-allow-overlap": false,
-        "text-optional": true, 
-      },
-      paint: {
-        "text-color": "#ffffff",
-        "text-halo-color": "rgba(0,0,0,0.85)",
-        "text-halo-width": 1.25,
-      },
-    });
-
-    receptorsLayer = "receptors-circles";
-
-    // Hover feature-state
-    let hoveredId = null;
-    map.on("mousemove", "receptors-circles", (e) => {
-      map.getCanvas().style.cursor = "pointer";
-      const f = e.features?.[0];
-      if (!f || typeof f.id !== "number") return;
-      if (hoveredId !== null) {
-        map.setFeatureState(
-          { source: "receptors-src", id: hoveredId },
-          { hover: false }
-        );
-      }
-      hoveredId = f.id;
-      map.setFeatureState(
-        { source: "receptors-src", id: hoveredId },
-        { hover: true }
-      );
-    });
-    map.on("mouseleave", "receptors-circles", () => {
-      map.getCanvas().style.cursor = "";
-      if (hoveredId !== null) {
-        map.setFeatureState(
-          { source: "receptors-src", id: hoveredId },
-          { hover: false }
-        );
-      }
-      hoveredId = null;
-    });
-
-    // Popups
-    map.on("click", "receptors-circles", (e) => {
-      const f = e.features?.[0]?.properties || {};
-      new maplibregl.Popup({ className: data.popupOptions.className })
-        .setLngLat(e.lngLat)
-        .setHTML(buildPopup(deserializeProps(f)))
-        .addTo(map);
-    });
-  }
-}
-
-function deserializeProps(p) {
-  return p;
-}
-
-// =========================
-//  pitch controls function
-// =========================
-// (function wirePitchUI() {
-//   const slider = document.getElementById("pitchRange");
-//   const label = document.getElementById("pitchValue");
-//   if (!slider || !label) return;
-
-//   const setLabel = (p) => (label.textContent = `${Math.round(p)}°`);
-
-//   // Update map when slider changes
-//   slider.addEventListener("input", (e) => {
-//     const pitch = Number(e.target.value);
-//     map.easeTo({ pitch, duration: 300 });
-//     setLabel(pitch);
-//   });
-
-//   // Keep slider/label in sync when user right-drags or uses touch
-//   const sync = () => {
-//     const p = map.getPitch();
-//     slider.value = String(Math.round(p));
-//     setLabel(p);
-//   };
-//   map.on("pitchend", sync);
-//   map.on("moveend", sync); // catches rotate+pitch drags together
-// })();
-
-// =========================
-//  buildPopup
-// =========================
 function buildPopup(properties) {
   const baseExclude = [
     "OBJECTID",
@@ -677,105 +143,79 @@ function buildBarrierPopup(p) {
   return `<div class="popup-content">${rows}</div>`;
 }
 
-// =========================
-// Helper Functions
-// =========================
-function toNum(v) {
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  if (v == null) return null;
-  const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(n) ? n : null;
-}
+// -------------------------
+// Attach to the existing StoryMap map
+// -------------------------
 
-function getImpact(props) {
-  return yn(props["Future Noise Design Build Impact"]);
-}
+map.on("load", () => {
+  // Optional: if you later want to classify receptors on the fly,
+  // you can fetch the source data here, add `cls`, and call setData().
 
-function getBenefited(props) {
-  if ("Benefited" in props) return yn(props.Benefited);
+  // Hover feature-state for receptors
+  let hoveredId = null;
+  map.on("mousemove", "receptors-circles", (e) => {
+    map.getCanvas().style.cursor = "pointer";
+    const f = e.features?.[0];
+    if (!f || typeof f.id !== "number") return;
 
-  const future = toNum(props["Future Noise Design Build"]);
-  const barrier = toNum(props["Barrier Design 10ft ALL"]);
-  if (future == null || barrier == null) return "NO";
-  const reduction = Math.round((future - barrier) * 10) / 10;
-  return reduction >= 5 ? "YES" : "NO";
-}
-
-function classifyReceptor(props) {
-  const impactYes = getImpact(props) === "YES";
-  const benefYes = getBenefited(props) === "YES";
-
-  if (impactYes && !benefYes) return "red";
-  if (impactYes && benefYes) return "green";
-  if (!impactYes && benefYes) return "yellow";
-  return "neutral";
-}
-
-function createGeoJson(data) {
-  const geoJson = { type: "FeatureCollection", features: [] };
-  const properties = Object.keys(data[0]);
-  for (const obj of data) {
-    const { geometry, ...props } = obj;
-    const feature = {
-      type: "Feature",
-      geometry: JSON.parse(geometry),
-      properties: props,
-    };
-    geoJson.features.push(feature);
-  }
-  return geoJson;
-}
-
-function getGeoJSONBounds(fc) {
-  if (!fc || !fc.features?.length) return null;
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  const scan = (coords) => {
-    if (typeof coords[0] === "number" && typeof coords[1] === "number") {
-      const x = coords[0],
-        y = coords[1];
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    } else {
-      for (const c of coords) scan(c);
+    if (hoveredId !== null) {
+      map.setFeatureState(
+        { source: "receptors-src", id: hoveredId },
+        { hover: false }
+      );
     }
-  };
-  for (const f of fc.features) {
-    const g = f.geometry;
-    if (!g) continue;
-    scan(g.coordinates);
-  }
-  if (!Number.isFinite(minX)) return null;
-  return [
-    [minX, minY],
-    [maxX, maxY],
-  ];
-}
-
-// =========================
-// DOM utils
-// =========================
-function $(selector) {
-  return document.querySelector(selector);
-}
-
-function buttonUI() {
-  const titleEl = $(data.layout.title);
-  const top = (titleEl ? titleEl.offsetHeight : 0) + 10 + "px";
-  $(data.layout.button).style.top = top;
-}
-
-function setLayout() {
-  const l = data.layout;
-  $(l.button).addEventListener("click", function () {
-    $(l.modal).style.display = "block";
+    hoveredId = f.id;
+    map.setFeatureState(
+      { source: "receptors-src", id: hoveredId },
+      { hover: true }
+    );
   });
-  $(l.modal).addEventListener("click", function () {
-    $(l.modal).style.display = "none";
+
+  map.on("mouseleave", "receptors-circles", () => {
+    map.getCanvas().style.cursor = "";
+    if (hoveredId !== null) {
+      map.setFeatureState(
+        { source: "receptors-src", id: hoveredId },
+        { hover: false }
+      );
+    }
+    hoveredId = null;
   });
-  window.addEventListener("resize", buttonUI);
-}
+
+  // Receptor popups
+  map.on("click", "receptors-circles", (e) => {
+    const props = e.features?.[0]?.properties || {};
+    new maplibregl.Popup({ className: "ml-tooltip-own" })
+      .setLngLat(e.lngLat)
+      .setHTML(buildPopup(props))
+      .addTo(map);
+  });
+
+  // Barrier popups
+  map.on("click", "barrier-extrusion", (e) => {
+    const p = e.features?.[0]?.properties || {};
+    const ft = Number(p["Barrier Segment Height (ft)"]);
+    const hText = Number.isFinite(ft) ? `${ft.toFixed(1)} ft` : "—";
+
+    const headerRow = `
+      <div class="kv-row">
+        <span class="key">Barrier Height:</span>
+        <span class="dots" aria-hidden="true"></span>
+        <span class="value">${hText}</span>
+      </div>`;
+
+    new maplibregl.Popup({ className: "ml-tooltip-own" })
+      .setLngLat(e.lngLat)
+      .setHTML(
+        `<div class="popup-content">${headerRow}${buildBarrierPopup(p)}</div>`
+      )
+      .addTo(map);
+  });
+
+  map.on("mouseenter", "barrier-extrusion", () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+  map.on("mouseleave", "barrier-extrusion", () => {
+    map.getCanvas().style.cursor = "";
+  });
+});
