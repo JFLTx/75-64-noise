@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>I-75/I-64 Noise - Exploration</title>
+  <!-- external libraries -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <!-- libre franklin font styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet" />
+  <!-- external styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+  <h1>I-75 / I-64 Noise Study - Newtown Pike to Western Split</h1>
+  <h2 id="button">Info</h2>
+  <div id="map"></div>
+  <!-- <div id="ui-controls">
+    <label for="pitchRange">Pitch</label>
+    <input id="pitchRange" type="range" min="0" max="85" step="1" value="55" />
+    <span id="pitchValue">55°</span>
+  </div> -->
+
+  <div id="modal">
+    <div class="container">
+      <span> &times; </span>
+      <h1>I-75 / I-64 Noise Study - Newtown Pike to Western Split</h1>
+      <div class="title">Methodology</div>
+      <p>
+        Traffic noise data analyzed for the I-75 / I-64 Widening between
+        Newtown Pike and the Western Split using TNM 2.5. Data was prepared
+        within ArcGIS Pro for use in this analysis.
+      </p>
+
+      <div class="legend">
+        <div class="legend-title">Legend</div>
+        <ul class="legend-list">
+          <li class="legend-item">
+            <span class="legend-swatch point green" aria-hidden="true"></span>
+            <span>Impacted, Benefited Receptor</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch point yellow" aria-hidden="true"></span>
+            <span>Not Impacted, Benefited Receptor</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch point red" aria-hidden="true"></span>
+            <span>Impacted, Not Benefited Receptor</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch point neutral" aria-hidden="true"></span>
+            <span>Not Impacted, Not Benefited</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch poly" aria-hidden="true"></span>
+            <span>Noise Study Area</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch line" aria-hidden="true"></span>
+            <span>Existing ROW</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch barrier" aria-hidden="true"></span>
+            <span>Proposed Noise Barrier</span>
+          </li>
+        </ul>
+      </div>
+
+      <p>
+        Receptors were grouped based on location. If a receptor occurs within
+        the front row (closest to the project), it has a suffix "-F". If a
+        receptor occurs at an apartment and is behind the apartment (furthest
+        from the project) it has the suffix "-R". Those groups with their
+        receptor naming conventions are as follows:
+      </p>
+      <ul class="receptor-groups">
+        <li>Residential Properties (Rxx)</li>
+        <li>Legacy Trail (LTxx)</li>
+        <li>Legacy Business Park (Undeveloped) (LBPxx)</li>
+        <li>Kearney Ridge Apartments (Existing) (KRxx-EX)</li>
+        <li>Kearney Ridge Apartments (Under Construction) (KRxx-CON)</li>
+      </ul>
+      <p>
+        Noise values in dB(A). Receptor height at a standard 5 ft, except for
+        apartments where each floor was modelled at 17 ft, and 29 ft for
+        second and third floors, respectively.
+        <br /><br />
+      </p>
+
+      <p>
+        Barrier costs are defined in
+        <a
+          href="https://transportation.ky.gov/EnvironmentalAnalysis/Environmental%20Resources/2022%20Revised%20KYTC%20Noise%20Analysis%20and%20Abatement%20Policy%20(7-11-2022)-posted%20-%208-1-2022.pdf">KYTC's
+          Noise Abatement Policy</a>, where KYTC assumes an average cost of $32/square foot of barrier
+        wall. Barriers are deemed reasonable so long as Cost Benefit Ratio
+        (CBR) values do not exceed $40,000 per benefited receptor.<br /><br />
+        Barrier costs are calculated as follows:
+        <br />
+      </p>
+      <math display="block">
+        <mrow>
+          <mi>C</mi>
+          <mo>=</mo>
+          <mi>L</mi>
+          <mo>×</mo>
+          <mi>H</mi>
+          <mo>×</mo>
+          <mi>$32/ft²</mi>
+        </mrow>
+      </math>
+      <p>
+        Where C = Cost ($), L = Length of Barrier (ft), and H = Barrier Height
+        (ft).
+        <br /><br />
+      </p>
+      <p>
+        CBR is defined as follows:
+        <br />
+      </p>
+      <math display="block">
+        <mrow>
+          <mi>CBR</mi>
+          <mo>=</mo>
+          <mfrac>
+            <mi>C</mi>
+            <mi>B</mi>
+          </mfrac>
+        </mrow>
+      </math>
+      <p>
+        Where C = Cost ($), and B = Number of Benefited Receptors.
+        <br /><br />
+      </p>
+
+      <p>&copy; OpenStreetMap contributors</p>
+      <div class="footer">
+        <img src="images/Palmer_Engineering_Logo_White.png" alt="PEC Logo" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+  <!-- Leaflet Projection -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"
+    integrity="sha512-Y/B11KRfeaNHAonSdwnF0fvpzsA+W27fqfMPmfkxRAwuySCcA7aT9LfJcWz5fi32McMI02jngFYj7LYT1z+VVg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.min.js"></script>
+
+  <!-- Add application JS -->
+  <script src="app/app.js"></script>
+</body>
+
+</html>
