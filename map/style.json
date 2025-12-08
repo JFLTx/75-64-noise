@@ -1,0 +1,210 @@
+{
+  "version": 8,
+  "name": "75-64 Noise StoryMap",
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+
+  "sources": {
+    "aerial": {
+      "type": "raster",
+      "tiles": [
+        "https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/Ky_Imagery_Phase3_3IN_WGS84WM/MapServer/tile/{z}/{y}/{x}"
+      ],
+      "tileSize": 256,
+      "maxzoom": 21,
+      "attribution": "Imagery © KyFromAbove"
+    },
+
+    "labels": {
+      "type": "raster",
+      "tiles": [
+        "https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
+        "https://cartodb-basemaps-b.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png",
+        "https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_only_labels/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "Map data © OpenStreetMap contributors"
+    },
+
+    "existingRow-src": {
+      "type": "geojson",
+      "data": "data/existing-row.geojson"
+    },
+
+    "buildingFootprints-src": {
+      "type": "geojson",
+      "data": "data/building-footprints.geojson"
+    },
+
+    "noiseBuffer-src": {
+      "type": "geojson",
+      "data": "data/noise-buffer.geojson"
+    },
+
+    "receptors-src": {
+      "type": "geojson",
+      "data": "data/receptors.geojson"
+    },
+
+    "barriers-src": {
+      "type": "geojson",
+      "data": "data/proposed-barrier-polygon.geojson"
+    }
+  },
+
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "rgba(195,175,165,1)",
+        "background-opacity": 1
+      }
+    },
+
+    {
+      "id": "aerial",
+      "type": "raster",
+      "source": "aerial",
+      "layout": { "visibility": "visible" },
+      "paint": {
+        "raster-brightness-min": 0.2,
+        "raster-saturation": 0.5,
+        "raster-hue-rotate": 20,
+        "raster-opacity": 1
+      }
+    },
+
+    {
+      "id": "label-tiles",
+      "type": "raster",
+      "source": "labels",
+      "paint": {
+        "raster-opacity": 1
+      }
+    },
+
+    {
+      "id": "existingRow-line",
+      "type": "line",
+      "source": "existingRow-src",
+      "paint": {
+        "line-color": "#ffd900",
+        "line-width": 2,
+        "line-opacity": 0.9
+      }
+    },
+
+    {
+      "id": "noiseBuffer-fill",
+      "type": "fill",
+      "source": "noiseBuffer-src",
+      "paint": {
+        "fill-color": "#e3dfa6",
+        "fill-opacity": 0.2
+      }
+    },
+    {
+      "id": "noiseBuffer-line",
+      "type": "line",
+      "source": "noiseBuffer-src",
+      "paint": {
+        "line-color": "#ffffff",
+        "line-width": 3,
+        "line-opacity": 1
+      }
+    },
+
+    {
+      "id": "buildings-extrusion",
+      "type": "fill-extrusion",
+      "source": "buildingFootprints-src",
+      "paint": {
+        "fill-extrusion-color": "#d4fdfd",
+        "fill-extrusion-height": [
+          "*",
+          ["coalesce", ["to-number", ["get", "H"]], 0],
+          0.3048
+        ],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0.9
+      }
+    },
+
+    {
+      "id": "barrier-extrusion",
+      "type": "fill-extrusion",
+      "source": "barriers-src",
+      "paint": {
+        "fill-extrusion-color": "#00ffff",
+        "fill-extrusion-height": [
+          "*",
+          [
+            "coalesce",
+            ["to-number", ["get", "Barrier Segment Height (ft)"]],
+            0
+          ],
+          0.3048
+        ],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0.95
+      }
+    },
+
+    {
+      "id": "receptors-circles",
+      "type": "circle",
+      "source": "receptors-src",
+      "paint": {
+        "circle-radius": [
+          "case",
+          ["boolean", ["feature-state", "hover"], false],
+          8,
+          5
+        ],
+        "circle-color": [
+          "match",
+          ["get", "cls"],
+          "red",
+          "#e61e1e",
+          "green",
+          "#00cc2c",
+          "yellow",
+          "#fffA3d",
+          "neutral",
+          "rgb(223,223,223)",
+          "#e31a1c"
+        ],
+        "circle-stroke-color": "#000000",
+        "circle-stroke-width": 0.6,
+        "circle-opacity": 0.9
+      }
+    },
+
+    {
+      "id": "receptors-labels",
+      "type": "symbol",
+      "source": "receptors-src",
+      "minzoom": 14,
+      "layout": {
+        "text-field": [
+          "coalesce",
+          ["get", "Name"],
+          ["get", "ReceiverName"],
+          ""
+        ],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 16, 12],
+        "text-anchor": "left",
+        "text-offset": [0.9, 0],
+        "text-allow-overlap": false,
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "rgba(0,0,0,0.85)",
+        "text-halo-width": 1.25
+      }
+    }
+  ]
+}
